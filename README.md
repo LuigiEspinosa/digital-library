@@ -2,6 +2,7 @@
 
 - [Project Overview](#project-overview)
 - [Technology Stack](#technology-stack)
+- [Architecture](#architecture)
 
 ## Project Overview
 
@@ -40,3 +41,60 @@ Self-hosted, privacy-first digital library that handles EPUB, PDF, CBZ/CBR comic
 | **nodemailer + SMTP**            | Free with Gmail APp Password or any SMTP provider.                                                                                                                                                                                                                                                                          |
 | **Docker + Componse**            | One-command deploy, fully portable, no cloud lock-in.                                                                                                                                                                                                                                                                       |
 | **Caddy**                        | Auto HTTPS via Let's Encrypt, trivial config, single static library.                                                                                                                                                                                                                                                        |
+| **Vitest**                       | SvelteKit already uses internally, zero extra tooling, single test command.                                                                                                                                                                                                                                                 |
+
+## Architecture
+
+### High-level Diagram
+
+```mermaid
+graph TB
+    Caddy[Caddy<br/>Reverse Proxy + Auto HTTPS]
+    SvelteKit[SvelteKit]
+    FastifyAPI[Fastify API]
+    SQLite[SQLite + FTS5]
+    BooksData["/data/<br/>books/"]
+    Redis["Redis<br/>(jobs)"]
+
+    Caddy -->|Port 3000| SvelteKit
+    Caddy -->|Port 4000| FastifyAPI
+    FastifyAPI -->SQLite
+    FastifyAPI -->BooksData
+    FastifyAPI -->Redis
+```
+
+### Repository Structure
+
+```txt
+digital-library/
+  ├── apps/
+  │ ├── api/                  # Fastify backend
+  │ │ └── src/
+  │ │ ├── routes/             # books, auth, libraries, kindle
+  │ │ ├── services/           # metadata, importer, smtp
+  │ │ ├── db/                 # schema, migrations, queries
+  │ │ └── jobs/               # BullMQ workers
+  │ └── web/                  # SvelteKit frontend
+  │ └── src/
+  │ ├── routes/               # SvelteKit page files
+  │ ├── lib/readers/          # EpubReader, PdfReader, ComicReader
+  │ └── lib/stores/           # reading position, user settings
+  ├── packages/
+  │ └── shared/               # shared TypeScript types (pnpm workspace)
+  ├── data/                   # mounted Docker volume
+  │ ├── books/                # all uploaded files
+  │ ├── covers/               # generated thumbnails
+  │ └── library.db            # SQLite database
+  └── docker-compose.yml
+```
+
+### Design Patterns
+
+| Pattern                        | Where & Why?                                                                                                                                                                         |
+| ------------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| **Repository Pattern**         | All DB access goes through typed repository classes (e.g. BookRepository, UserRepository). This keeps raw SQL out of route handlers and makes testing and future storage swaps easy. |
+| **Plugin Architecture**        | Each domain (books, auth, libraries, kindle) is a separate Fastify plugin registed with fastify.register(). Clean separation, lazy loading, and scoped decorators.                   |
+| **Command / Job Queue**        | Async work like metadata fetch, Kindle send, and thumbnail generator is dispatched as BullMQ jobs rather than blocking the HTTP request. The API returns 202 Accepted immediately.   |
+| **Adapter Pattern (Metadata)** | A MetadataAdapter interface with concrete implementations for OpenLibrary, ComicVine, and a FallbackAdapter. Adding a new metedata source does not touch business logic.             |
+| **Reader Strategy Pattern**    | A single `<Reader>` Svelte component dispatches to `<EpubReader>`, `<PdfReader>`. or `<ComicReader>` based on `book.format`. Each renders owns its own layout modes and settings.    |
+| **FTS5 Shadow Table**          | A virtual FTS5 table mirrors the books table. An SQLite trigger keeps it in sync on insert/update. Searches hit FTS5 for ranking then JOIN back to the main table for metadata.      |
