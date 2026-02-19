@@ -30,7 +30,6 @@ Self-hosted, privacy-first digital library that handles EPUB, PDF, CBZ/CBR comic
 | **SvelteKit**                    | Tiny bundles (than Next.js), witch matters for a reading app that may run on a Raspberry Pi or low-end VPS, file-based routing, SSR out of the box, no virtual DOM overhead. Also, Svelte's reactivity model is a better fit for reader UI state (page position, zoom, layout mode) with less boilerplate than React hooks. |
 | **SQLite (better-sqlite3)**      | Zero infra, file-based, ACID, blazing read speed for single-node self-hosted apps.                                                                                                                                                                                                                                          |
 | **SQLite FTS5**                  | Built into SQLite, no Elasticsearch overhead, supports prefix & phrase queries.                                                                                                                                                                                                                                             |
-| **lucia-auth v3**                | Self-hosted sessions, zero cloud dependencies, supports OAuth later if needed.                                                                                                                                                                                                                                              |
 | **epub.js (client-side)**        | De facto standard, supports CFI positions, reflow, custom CSS injection.                                                                                                                                                                                                                                                    |
 | **PDF.js (client-side)**         | Mozilla's library, works fully offline, no server-side processing required.                                                                                                                                                                                                                                                 |
 | **Open Library API + ComicVine** | Both free, Open Library requires no API key at all.                                                                                                                                                                                                                                                                         |
@@ -139,7 +138,7 @@ pnpm typecheck
 | #   | Phase                                        | Status  |
 | --- | -------------------------------------------- | ------- |
 | 1   | Monorepo scaffold + Docker Compose           | ✅ Done |
-| 2   | Auth system (lucia-auth, sessions, ACL)      | 🔜      |
+| 2   | Auth system (auth, sessions, ACL)            | ✅ Done |
 | 3   | Library management CRUD                      | 🔜      |
 | 4   | File import, deduplication, metadata extract | 🔜      |
 | 5   | Library browse UI                            | 🔜      |

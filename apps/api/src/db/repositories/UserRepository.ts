@@ -1,9 +1,9 @@
-import { generateIdFromEntropySize } from 'lucia';
+import { nanoid } from 'nanoid';
 import { hash, verify } from '@node-rs/argon2';
 import type { Db } from '../connection.js';
 import type { User } from '@digital-library/shared';
 
-// Recommended minimum Argon2id parameters from lucia v3 docs
+// Argon2id parameters — from OWASP recommendations
 const ARGON2_OPTIONS = {
   memoryCost: 19456,
   timeCost: 2,
@@ -35,13 +35,13 @@ export class UserRepository {
 
   findById(id: string): User | null {
     const row = this.db
-      .prepare('SELECT * FROM users WHERE = id = ?')
+      .prepare('SELECT * FROM users WHERE id = ?')
       .get(id) as DbUser | undefined;
 
     return row ? toUser(row) : null;
   }
 
-  findByEmail(email: string): (DbUser) | null {
+  findByEmail(email: string): DbUser | null {
     const row = this.db
       .prepare('SELECT * FROM users WHERE email = ?')
       .get(email.toLowerCase().trim()) as DbUser | undefined;
@@ -62,7 +62,7 @@ export class UserRepository {
     password: string;
     is_admin?: boolean;
   }): Promise<User> {
-    const id = generateIdFromEntropySize(10); // 16 character secure random ID
+    const id = nanoid();
     const hashed_password = await hash(opts.password, ARGON2_OPTIONS);
 
     this.db.prepare(`
@@ -84,14 +84,14 @@ export class UserRepository {
 
   /**
    * Verify a plaintext password. Returns the User on success, null on failure.
-   * Always run the full hash comparison to prevent timing attacks,
-   * even when no user is found, we hash anyway so the response time is constant.
+   * Always runs a full Argon2 hash even when the user is not found, so that
+   * response time is constant regardless of whether the email exists.
    */
   async verifyPassword(email: string, password: string): Promise<User | null> {
     const row = this.findByEmail(email);
 
     if (!row) {
-      // Dummy hash to keep response time constant
+      // Dummy hash — keeps response time constant (timing-attack prevention)
       await hash(password, ARGON2_OPTIONS);
       return null;
     }

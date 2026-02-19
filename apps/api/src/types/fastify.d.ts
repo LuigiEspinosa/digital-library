@@ -1,15 +1,14 @@
-import type { Session, User } from 'lucia';
 import type { Db } from '../db/connection.js';
-import type {LuciaInstance} from '../auth/lucia.js';
+import type { Session, User } from '@library/shared';
 
 declare module 'fastify' {
   interface FastifyInstance {
     db: Db;
-    lucia: LuciaInstance;
   }
 
   interface FastifyRequest {
+    // Populated by requireAuth preHandler. Null on unauthenticated requests.
     user: User | null;
-    session: Session | null
+    session: Session | null;
   }
 }

@@ -5,7 +5,6 @@ import cookie from '@fastify/cookie';
 
 import { createDb } from "./db/connection.js";
 import { runMigrations } from "./db/migration.js";
-import { initLucia } from "./auth/lucia.js";
 import { UserRepository } from "./db/repositories/UserRepository.js";
 
 import { healthRoutes } from "./routes/health.js";
@@ -13,9 +12,6 @@ import { authRoutes } from "./routes/auth.js";
 import { bookRoutes } from "./routes/books.js";
 import { libraryRoutes } from "./routes/libraries.js";
 import { adminUserRoutes } from "./routes/admin/users.js";
-
-// Ensure Fastify type augmentations are loaded
-import './types/fastify.js';
 
 interface BuildOptions {
   // Pass ':memory:' in tests for a clean in-memory DB each run
@@ -37,19 +33,12 @@ export async function build(opts: BuildOptions = {}): Promise<FastifyInstance> {
   await fastify.register(helmet, { contentSecurityPolicy: false });
 
   // @fastify/cookie is required so reply.setCookie() works.
-  // lucia reads cookies from request.headers.cookie directly
-  await fastify.register(cookie, {
-    secret: process.env.SESSION_SECRET ?? 'dev-secret-change-me',
-  });
+  await fastify.register(cookie);
 
   // ---- Database ----
   const db = createDb(opts.db);
   runMigrations(db);
   fastify.decorate('db', db);
-
-  // ---- Auth ----
-  const lucia = initLucia(db);
-  fastify.decorate('lucia', lucia);
 
   // Decorate every request with null defatuls so TypeScript is satisfied
   // eveon on routes that don't run requireAuth.

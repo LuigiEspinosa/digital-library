@@ -1,6 +1,12 @@
-import type { FastifyPluginAsync } from "fastify";
-import { UserRepository } from "../db/repositories/UserRepository.js";
-import { requireAuth } from "../middleware/auth.js";
+import type { FastifyPluginAsync } from 'fastify';
+import { UserRepository } from '../db/repositories/UserRepository.js';
+import { requireAuth } from '../middleware/auth.js';
+import {
+  createSession,
+  invalidateSession,
+  buildCookieOptions,
+  blankCookieOptions,
+} from '../auth/session.js';
 
 interface LoginBody {
   email: string;
@@ -9,7 +15,6 @@ interface LoginBody {
 
 export const authRoutes: FastifyPluginAsync = async (fastify) => {
   const users = new UserRepository(fastify.db);
-  const lucia = fastify.lucia;
 
   fastify.post<{ Body: LoginBody }>(
     '/auth/login',
@@ -30,7 +35,7 @@ export const authRoutes: FastifyPluginAsync = async (fastify) => {
       const user = await users.verifyPassword(email, password);
 
       if (!user) {
-        // Never reveal whether the email exists
+        // Generic message — never reveal whether the email exists
         return reply.code(401).send({
           statusCode: 401,
           error: 'Unauthorized',
@@ -38,11 +43,11 @@ export const authRoutes: FastifyPluginAsync = async (fastify) => {
         });
       }
 
-      const session = await lucia.createSession(user.id, {});
-      const cookie = lucia.createSessionCookie(session.id);
+      const session = createSession(fastify.db, user.id);
+      const cookieOpts = buildCookieOptions(session.expiresAt);
 
-      // httpOnly + sameSite=strict set by lucia via cookie.attributes
-      reply.setCookie(cookie.name, cookie.value, cookie.attributes);
+      // httpOnly + sameSite=strict
+      reply.setCookie(cookieOpts.name, session.id, cookieOpts);
       return reply.code(200).send({ user });
     }
   );
@@ -51,19 +56,18 @@ export const authRoutes: FastifyPluginAsync = async (fastify) => {
     '/auth/logout',
     { preHandler: [requireAuth] },
     async (request, reply) => {
-      await lucia.invalidateSession(request.session!.id);
-      const blank = lucia.createBlankSessionCookie();
-      reply.setCookie(blank.name, blank.value, blank.attributes);
+      invalidateSession(fastify.db, request.session!.id);
+      const opts = blankCookieOptions();
+      reply.setCookie(opts.name, '', opts);
       return reply.code(204).send();
     }
   );
 
-  // Used by the SvelteKit layout server load to hydrate session state on SSR.
   fastify.get(
     '/auth/me',
     { preHandler: [requireAuth] },
     async (request, reply) => {
       return reply.send({ user: request.user });
     }
-  )
+  );
 };

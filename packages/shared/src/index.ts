@@ -74,3 +74,12 @@ export interface HealthResponse {
   uptime: number;
   book_count: number;
 }
+
+// ---- Session ----
+
+export interface Session {
+  id: string;
+  userId: string;
+  expiresAt: Date;
+  fresh: boolean;
+}

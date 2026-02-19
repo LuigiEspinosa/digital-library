@@ -1,21 +1,21 @@
 import type { FastifyRequest, FastifyReply } from 'fastify';
+import {
+  validateSession,
+  buildCookieOptions,
+  blankCookieOptions,
+  COOKIE_NAME,
+} from '../auth/session.js';
 
 /**
- * Validates the lucia session cookie.
+ * Validates the session cookie on every protected request.
  * Attaches user + session to request.user / request.session.
- * Returns 401 if cookie is absent, invald, or expired.
- * 
- * NOTE: typed as plain async functions, NOT as `preHandlerHookHandler`.
- * Fastify v4's preHandlerHookHandler type expects a callback-style `done`
- * third parameter. Async hook handlers don't use `done` and Fastify
- * handles them correctly at runtime with the plain async signature.
+ * Returns 401 if the cookie is missing, invalid, or expired.
  */
 export const requireAuth = async (
   request: FastifyRequest,
   reply: FastifyReply
 ): Promise<void> => {
-  const lucia = request.server.lucia;
-  const sessionId = lucia.readSessionCookie(request.headers.cookie ?? '');
+  const sessionId = request.cookies[COOKIE_NAME];
 
   if (!sessionId) {
     return reply.code(401).send({
@@ -25,23 +25,23 @@ export const requireAuth = async (
     });
   }
 
-  const { session, user } = await lucia.validateSession(sessionId);
+  const { session, user } = validateSession(request.server.db, sessionId);
 
   if (!session) {
-    const blank = lucia.createBlankSessionCookie();
-    reply.setCookie(blank.name, blank.value, blank.attributes);
+    // Wipe the stale cookie
+    const opts = blankCookieOptions();
+    reply.setCookie(opts.name, '', opts);
     return reply.code(401).send({
       statusCode: 401,
       error: 'Unauthorized',
-      message: 'Session expired or invalid.',
+      message: 'Session expired or invalid',
     });
   }
 
-  // Lucia silently extends sessions nearing expiry.
-  // If it did so, issue a refreshed cookie so the browser stays in sync.
+  // If the session was silently extended (past half-life), refresh the cookie
   if (session.fresh) {
-    const refreshed = lucia.createSessionCookie(session.id);
-    reply.setCookie(refreshed.name, refreshed.value, refreshed.attributes);
+    const opts = buildCookieOptions(session.expiresAt);
+    reply.setCookie(opts.name, session.id, opts);
   }
 
   request.user = user;
@@ -49,18 +49,15 @@ export const requireAuth = async (
 };
 
 /**
- * Runs requireAuth, then additionally asserts is_admin === true.
+ * Like requireAuth but additionally asserts is_admin === true.
  * Returns 403 for authenticated non-admin users.
  */
 export const requireAdmin = async (
   request: FastifyRequest,
-  reply: FastifyReply,
+  reply: FastifyReply
 ): Promise<void> => {
-  // Validate session first, this populates request.user or sends a 401.
   await requireAuth(request, reply);
-
-  // If reply was aleready sent (401), request.user will still be null.
-  if (reply.sent) return;
+  if (reply.sent) return; // requireAuth already replied with 401
 
   if (!request.user?.is_admin) {
     return reply.code(403).send({

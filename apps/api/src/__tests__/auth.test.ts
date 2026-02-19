@@ -1,6 +1,12 @@
 import { describe, test, expect, beforeEach, afterEach } from 'vitest';
 import type { FastifyInstance } from 'fastify';
 import { build } from '../app.js';
+import { UserRepository } from '../db/repositories/UserRepository.js';
+
+// Helper: get the internal db from a built app
+function getDb(app: FastifyInstance) {
+  return (app as any).db;
+}
 
 describe('Auth routes', () => {
   let app: FastifyInstance;
@@ -12,41 +18,6 @@ describe('Auth routes', () => {
 
   afterEach(async () => {
     await app.close();
-  });
-
-  // ---- Login ----
-
-  test('login with valid credentials returns 200 and sets cookie', async () => {
-    // Create a user first via admin route
-    await app.inject({
-      method: 'POST',
-      url: '/api/admin/users',
-      payload: { email: 'cuatro@example.com', password: 'password123' },
-      // Bypass admin check by injecting as admin — we'll test ACL separately
-    });
-
-    // We need an admin session to call the admin route, so seed directly
-    // by using the first-admin path: restart with env vars set
-    const seedApp = await build({
-      db: ':memory:',
-      logger: false,
-    });
-    // Manually seed a user through the repository
-    const { UserRepository } = await import('../db/repositories/UserRepository.js');
-    const users = new UserRepository((seedApp as any).db);
-    await users.create({ email: 'cuatro@example.com', password: 'password123' });
-
-    const res = await seedApp.inject({
-      method: 'POST',
-      url: '/api/auth/login',
-      payload: { email: 'cuatro@example.com', password: 'password123' },
-    });
-
-    expect(res.statusCode).toBe(200);
-    expect(res.json().user.email).toBe('cuatro@example.com');
-    expect(res.headers['set-cookie']).toBeTruthy();
-
-    await seedApp.close();
   });
 
   test('login with wrong password returns 401', async () => {
@@ -67,19 +38,28 @@ describe('Auth routes', () => {
     expect(res.statusCode).toBe(400);
   });
 
-  // ---- /me ----
+  test('login with valid credentials returns 200 and sets cookie', async () => {
+    const users = new UserRepository(getDb(app));
+    await users.create({ email: 'alice@example.com', password: 'password123' });
+
+    const res = await app.inject({
+      method: 'POST',
+      url: '/api/auth/login',
+      payload: { email: 'alice@example.com', password: 'password123' },
+    });
+
+    expect(res.statusCode).toBe(200);
+    expect(res.json().user.email).toBe('alice@example.com');
+    expect(res.headers['set-cookie']).toBeTruthy();
+  });
 
   test('GET /me without cookie returns 401', async () => {
-    const res = await app.inject({
-      method: 'GET',
-      url: '/api/auth/me',
-    });
+    const res = await app.inject({ method: 'GET', url: '/api/auth/me' });
     expect(res.statusCode).toBe(401);
   });
 
   test('GET /me with valid session returns user', async () => {
-    const { UserRepository } = await import('../db/repositories/UserRepository.js');
-    const users = new UserRepository((app as any).db);
+    const users = new UserRepository(getDb(app));
     await users.create({ email: 'bob@example.com', password: 'password123' });
 
     const loginRes = await app.inject({
@@ -94,21 +74,19 @@ describe('Auth routes', () => {
       url: '/api/auth/me',
       headers: { cookie },
     });
+
     expect(meRes.statusCode).toBe(200);
     expect(meRes.json().user.email).toBe('bob@example.com');
   });
 
-  // ---- Logout ----
-
   test('logout invalidates session — subsequent /me returns 401', async () => {
-    const { UserRepository } = await import('../db/repositories/UserRepository.js');
-    const users = new UserRepository((app as any).db);
-    await users.create({ email: 'celeste@example.com', password: 'password123' });
+    const users = new UserRepository(getDb(app));
+    await users.create({ email: 'carol@example.com', password: 'password123' });
 
     const loginRes = await app.inject({
       method: 'POST',
       url: '/api/auth/login',
-      payload: { email: 'celeste@example.com', password: 'password123' },
+      payload: { email: 'carol@example.com', password: 'password123' },
     });
     const cookie = loginRes.headers['set-cookie'] as string;
 
@@ -133,10 +111,7 @@ describe('Admin user routes', () => {
 
   beforeEach(async () => {
     app = await build({ db: ':memory:', logger: false });
-
-    // Seed an admin user directly via repository
-    const { UserRepository } = await import('../db/repositories/UserRepository.js');
-    const users = new UserRepository((app as any).db);
+    const users = new UserRepository(getDb(app));
     await users.create({ email: 'admin@example.com', password: 'adminpass', is_admin: true });
     await users.create({ email: 'regular@example.com', password: 'userpass', is_admin: false });
 
@@ -152,7 +127,7 @@ describe('Admin user routes', () => {
     await app.close();
   });
 
-  test('GET /admin/users returns user list', async () => {
+  test('GET /admin/users returns user list for admin', async () => {
     const res = await app.inject({
       method: 'GET',
       url: '/api/admin/users',
@@ -183,7 +158,7 @@ describe('Admin user routes', () => {
     expect(res.statusCode).toBe(409);
   });
 
-  test('DELETE /admin/users/:id deletes user', async () => {
+  test('DELETE /admin/users/:id deletes a user', async () => {
     const listRes = await app.inject({
       method: 'GET',
       url: '/api/admin/users',
@@ -191,15 +166,15 @@ describe('Admin user routes', () => {
     });
     const regularUser = listRes.json().users.find((u: any) => !u.is_admin);
 
-    const deleteRes = await app.inject({
+    const res = await app.inject({
       method: 'DELETE',
       url: `/api/admin/users/${regularUser.id}`,
       headers: { cookie: adminCookie },
     });
-    expect(deleteRes.statusCode).toBe(204);
+    expect(res.statusCode).toBe(204);
   });
 
-  test('DELETE /admin/users/:id cannot delete own account', async () => {
+  test('admin cannot delete their own account', async () => {
     const meRes = await app.inject({
       method: 'GET',
       url: '/api/auth/me',
@@ -215,7 +190,7 @@ describe('Admin user routes', () => {
     expect(res.statusCode).toBe(400);
   });
 
-  test('non-admin cannot access admin routes', async () => {
+  test('non-admin gets 403 on admin routes', async () => {
     const loginRes = await app.inject({
       method: 'POST',
       url: '/api/auth/login',
@@ -232,10 +207,7 @@ describe('Admin user routes', () => {
   });
 
   test('unauthenticated request to admin route returns 401', async () => {
-    const res = await app.inject({
-      method: 'GET',
-      url: '/api/admin/users',
-    });
+    const res = await app.inject({ method: 'GET', url: '/api/admin/users' });
     expect(res.statusCode).toBe(401);
   });
 });
@@ -248,19 +220,15 @@ describe('ACL routes', () => {
 
   beforeEach(async () => {
     app = await build({ db: ':memory:', logger: false });
-
-    const { UserRepository } = await import('../db/repositories/UserRepository.js');
-    const users = new UserRepository((app as any).db);
+    const users = new UserRepository(getDb(app));
     await users.create({ email: 'admin@example.com', password: 'adminpass', is_admin: true });
-    const regularUser = await users.create({ email: 'regular@example.com', password: 'userpass' });
-    regularUserId = regularUser.id;
+    const regular = await users.create({ email: 'regular@example.com', password: 'userpass' });
+    regularUserId = regular.id;
 
-    // Create a library directly in DB
+    // Create a library directly in the DB
     const { nanoid } = await import('nanoid');
     libraryId = nanoid();
-    (app as any).db.prepare(
-      'INSERT INTO libraries (id, name) VALUES (?, ?)'
-    ).run(libraryId, 'Test Library');
+    getDb(app).prepare('INSERT INTO libraries (id, name) VALUES (?, ?)').run(libraryId, 'Test Library');
 
     const loginRes = await app.inject({
       method: 'POST',
@@ -274,7 +242,7 @@ describe('ACL routes', () => {
     await app.close();
   });
 
-  test('admin can grant library access to user', async () => {
+  test('admin can grant library access', async () => {
     const res = await app.inject({
       method: 'PUT',
       url: `/api/admin/users/${regularUserId}/libraries/${libraryId}`,
@@ -283,15 +251,13 @@ describe('ACL routes', () => {
     expect(res.statusCode).toBe(204);
   });
 
-  test('admin can revoke library access from user', async () => {
-    // Grant first
+  test('admin can revoke library access', async () => {
     await app.inject({
       method: 'PUT',
       url: `/api/admin/users/${regularUserId}/libraries/${libraryId}`,
       headers: { cookie: adminCookie },
     });
 
-    // Then revoke
     const res = await app.inject({
       method: 'DELETE',
       url: `/api/admin/users/${regularUserId}/libraries/${libraryId}`,
