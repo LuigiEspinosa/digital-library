@@ -12,13 +12,13 @@ COPY package.json pnpm-workspace.yaml pnpm-lock.yaml* ./
 COPY packages/shared/package.json ./packages/shared/
 COPY apps/api/package.json ./apps/api/
 
-RUN pnpm install --frozen-lockfile --filter @library/api...
+RUN pnpm install --frozen-lockfile --filter @digital-library/api...
 
 # ---- Build ----
 FROM deps AS build
 COPY packages/shared ./packages/shared
 COPY apps/api ./apps/api
-RUN pnpm --filter @library/api build
+RUN pnpm --filter @digital-library/api build
 
 # ---- Runtime ----
 FROM node:22-slim AS runtime
