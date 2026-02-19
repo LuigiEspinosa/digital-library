@@ -36,7 +36,7 @@ export interface Library {
 export interface User {
   id: string;
   email: string;
-  is_adming: boolean;
+  is_admin: boolean;
   kindle_email?: string;
   created_at: string;
 }
@@ -73,4 +73,13 @@ export interface HealthResponse {
   version: string;
   uptime: number;
   book_count: number;
+}
+
+// ---- Session ----
+
+export interface Session {
+  id: string;
+  userId: string;
+  expiresAt: Date;
+  fresh: boolean;
 }

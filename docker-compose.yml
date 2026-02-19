@@ -25,6 +25,8 @@ services:
       HOST: ${HOST:-0.0.0.0}
       DATABASE_PATH: ${DATABASE_PATH:-/data/library.db}
       SESSION_SECRET: ${SESSION_SECRET}
+      ADMIN_EMAIL: ${ADMIN_EMAIL:-}
+      ADMIN_PASSWORD: ${ADMIN_PASSWORD:-}
       WEB_ORIGIN: ${WEB_ORIGIN:-https://library.cuatro.dev}
       REDIS_URL: ${REDIS_URL:-redis://redis:6379}
       SMTP_HOST: ${SMTP_HOST:-}

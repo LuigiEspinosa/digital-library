@@ -1,4 +1,4 @@
-import type { BookFormat } from "@library/shared";
+import type { BookFormat } from "@digital-library/shared";
 
 /**
  * Derives the BookFormat from a filename extension.

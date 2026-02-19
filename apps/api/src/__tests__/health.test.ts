@@ -50,14 +50,4 @@ describe('Health endpoint', () => {
 
     expect(res.statusCode).toBe(404);
   });
-
-  test('POST /api/auth/login returns 501', async () => {
-    const res = await app.inject({
-      method: 'POST',
-      url: '/api/auth/login',
-      payload: { email: 'test@example.com', password: 'password' },
-    });
-
-    expect(res.statusCode).toBe(501);
-  });
 });
