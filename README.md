@@ -18,11 +18,6 @@ Self-hosted, privacy-first digital library that handles EPUB, PDF, CBZ/CBR comic
 - Auto-import file watcher.
 - Desktop first.
 
-### TO DO
-
-- [ ] Mobile Support.
-- [ ] Portability. (Make it run on VPS, NAS, Pi).
-
 ## Technology Stack
 
 | Technology                       | Why?                                                                                                                                                                                                                                                                                                                        |
@@ -98,3 +93,59 @@ digital-library/
 | **Adapter Pattern (Metadata)** | A MetadataAdapter interface with concrete implementations for OpenLibrary, ComicVine, and a FallbackAdapter. Adding a new metedata source does not touch business logic.             |
 | **Reader Strategy Pattern**    | A single `<Reader>` Svelte component dispatches to `<EpubReader>`, `<PdfReader>`. or `<ComicReader>` based on `book.format`. Each renders owns its own layout modes and settings.    |
 | **FTS5 Shadow Table**          | A virtual FTS5 table mirrors the books table. An SQLite trigger keeps it in sync on insert/update. Searches hit FTS5 for ranking then JOIN back to the main table for metadata.      |
+
+## One-Command Deploy
+
+```bash
+git clone https://github.com/LuigiEspinosa/digital-library
+cd /digital-library
+cp .env.example .env
+# edit .env
+docker compose up -d
+```
+
+Point `library.cuatro.dev` at your server IP (A record in your DNS provider),
+and Caddy will provision HTTPS automatically.
+
+## Development
+
+```bash
+# Prerequisites: Node 22, pnpm 9
+corepack enable
+pnpm install
+
+# Run API + web in parallel
+pnpm dev
+
+# Tests
+pnpm test
+
+# Type check
+pnpm typecheck
+```
+
+## Required Secrets (GitHub Actions)
+
+| Secret           | Description              |
+| ---------------- | ------------------------ |
+| `SERVER_HOST`    | VPS IP address           |
+| `SERVER_USER`    | SSH username             |
+| `SERVER_SSH_KEY` | Private SSH key contents |
+| `SERVER_PORT`    | SSH port (usually 22)    |
+
+## Build Phases
+
+| #   | Phase                                        | Status  |
+| --- | -------------------------------------------- | ------- |
+| 1   | Monorepo scaffold + Docker Compose           | ✅ Done |
+| 2   | Auth system (lucia-auth, sessions, ACL)      | 🔜      |
+| 3   | Library management CRUD                      | 🔜      |
+| 4   | File import, deduplication, metadata extract | 🔜      |
+| 5   | Library browse UI                            | 🔜      |
+| 6   | Full-text search (FTS5)                      | 🔜      |
+| 7   | EPUB reader                                  | 🔜      |
+| 8   | PDF reader                                   | 🔜      |
+| 9   | Comic/image reader                           | 🔜      |
+| 10  | Metadata enrichment (OpenLibrary, ComicVine) | 🔜      |
+| 11  | Kindle send                                  | 🔜      |
+| 12  | Polish & deploy                              | 🔜      |

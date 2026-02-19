@@ -14,7 +14,7 @@
 	<section>
 		<h2>API Status</h2>
 		{#if data.health}
-			<pre>{JSON.stringify(data.health.null, 2)}</pre>
+			<pre>{JSON.stringify(data.health, null, 2)}</pre>
 		{:else}
 			<p style="color: red;">Could not reach API.</p>
 		{/if}

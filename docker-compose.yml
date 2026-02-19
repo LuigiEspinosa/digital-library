@@ -20,15 +20,18 @@ services:
       dockerfile: apps/api/Dockerfile
     restart: unless-stopped
     environment:
-      NODE_ENV: production
-      DATABASE_PATH: /data/library.db
+      NODE_ENV: ${NODE_ENV:-production}
+      PORT: ${PORT:-4000}
+      HOST: ${HOST:-0.0.0.0}
+      DATABASE_PATH: ${DATABASE_PATH:-/data/library.db}
       SESSION_SECRET: ${SESSION_SECRET}
       WEB_ORIGIN: ${WEB_ORIGIN:-https://library.cuatro.dev}
+      REDIS_URL: ${REDIS_URL:-redis://redis:6379}
       SMTP_HOST: ${SMTP_HOST:-}
       SMTP_PORT: ${SMTP_PORT:-587}
       SMTP_USER: ${SMTP_USER:-}
       SMTP_PASS: ${SMTP_PASS:-}
-      REDIS_URL: redis://redis:6379
+      COMICVINE_API_KEY: ${COMICVINE_API_KEY:-}
     volumes:
       - library_data:/data
     depends_on:
@@ -46,8 +49,8 @@ services:
       dockerfile: apps/web/Dockerfile
     restart: unless-stopped
     environment:
-      NODE_ENV: production
-      PUBLIC_API_URL: http://api:4000
+      NODE_ENV: ${NODE_ENV:-production}
+      PUBLIC_API_URL: ${PUBLIC_API_URL:-http://api:4000}
     depends_on:
       - api
     healthcheck:
@@ -71,7 +74,7 @@ services:
 volumes:
   library_data:
     # Persistent volume for SQLite DB, book files, and cover thumbnails.
-    # Never use ephemeral filesystems
+    # Never use ephemeral filesystems — see section 11 (Why Not Vercel).
   caddy_data:
   caddy_config:
   redis_data:
