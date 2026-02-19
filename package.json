@@ -9,9 +9,9 @@
 		"typecheck": "pnpm -r typecheck"
 	},
 	"devDependencies": {
-		"@vitest/coverage-v8": "^4.0.18",
+		"@vitest/coverage-v8": "^2.1.9",
 		"typescript": "^5.4.0",
-		"vitest": "^1.6.0"
+		"vitest": "^2.1.9"
 	},
 	"engines": {
 		"node": ">=22",
