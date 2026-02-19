@@ -21,6 +21,7 @@ RUN pnpm install --frozen-lockfile --filter @digital-library/api...
 
 # ---- Build ----
 FROM deps AS build
+COPY tsconfig.json ./
 COPY packages/shared ./packages/shared
 COPY apps/api ./apps/api
 RUN pnpm --filter @digital-library/api build
