@@ -1,0 +1,16 @@
+library.cuatro.dev {
+  # API routes go to Fastify
+  handle /api/* {
+    reverse_proxy api:4000
+  }
+
+  # Static book/cover files served by the API
+  handle /files/* {
+    reverse_proxy api:4000
+  }
+
+  # Everything else goes to SvelteKit
+  handle {
+    reverse_proxy web:3000
+  }
+}
