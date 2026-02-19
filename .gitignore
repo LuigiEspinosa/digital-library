@@ -1,6 +1,3 @@
-# Created by https://www.toptal.com/developers/gitignore/api/windows,macos,linux,visualstudiocode,node,svelte,redis,composer
-# Edit at https://www.toptal.com/developers/gitignore?templates=windows,macos,linux,visualstudiocode,node,svelte,redis,composer
-
 ### Composer ###
 composer.phar
 /vendor/
@@ -254,4 +251,12 @@ $RECYCLE.BIN/
 # Windows shortcuts
 *.lnk
 
-# End of https://www.toptal.com/developers/gitignore/api/windows,macos,linux,visualstudiocode,node,svelte,redis,composer
+# Custom
+dist/
+build/
+*.db
+*.db-wal
+*.db-shm
+data/
+coverage/
+.pnpm-store/
