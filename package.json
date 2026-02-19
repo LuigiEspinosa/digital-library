@@ -4,9 +4,9 @@
 	"version": "0.0.1",
 	"scripts": {
 		"dev": "pnpm --parallel -r dev",
-		"build": "pnpm -r build",
+		"build": "pnpm --filter @digital-library/shared build && pnpm --filter !@digital-library/shared -r build", 
 		"test": "vitest run",
-		"typecheck": "pnpm -r typecheck"
+		"typecheck": "pnpm --filter @digital-library/shared build && pnpm -r typecheck"
 	},
 	"devDependencies": {
 		"@vitest/coverage-v8": "^2.1.9",

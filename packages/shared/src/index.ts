@@ -36,7 +36,7 @@ export interface Library {
 export interface User {
   id: string;
   email: string;
-  is_adming: boolean;
+  is_admin: boolean;
   kindle_email?: string;
   created_at: string;
 }
