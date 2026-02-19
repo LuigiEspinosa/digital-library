@@ -3,6 +3,10 @@
 - [Project Overview](#project-overview)
 - [Technology Stack](#technology-stack)
 - [Architecture](#architecture)
+- [One-Command Deploy](#one-command-deploy)
+- [Development](#development)
+- [Required Secrets (GitHub Actions)](#required-secrets-github-actions)
+- [Build Phases](#build-phases)
 
 ## Project Overview
 
@@ -103,9 +107,6 @@ cp .env.example .env
 # edit .env
 docker compose up -d
 ```
-
-Point `library.cuatro.dev` at your server IP (A record in your DNS provider),
-and Caddy will provision HTTPS automatically.
 
 ## Development
 

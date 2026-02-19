@@ -74,7 +74,7 @@ services:
 volumes:
   library_data:
     # Persistent volume for SQLite DB, book files, and cover thumbnails.
-    # Never use ephemeral filesystems — see section 11 (Why Not Vercel).
+    # Never use ephemeral filesystems
   caddy_data:
   caddy_config:
   redis_data:
