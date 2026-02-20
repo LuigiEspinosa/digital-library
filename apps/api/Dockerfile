@@ -18,7 +18,7 @@ COPY package.json pnpm-workspace.yaml pnpm-lock.yaml* ./
 COPY packages/shared/package.json ./packages/shared/
 COPY apps/api/package.json ./apps/api/
 
-RUN pnpm install --frozen-lockfile --filter @digital-library/api...
+RUN pnpm install --frozen-lockfile --ignore-scripts --filter @digital-library/api...
 
 # ---- Build ----
 FROM deps AS build
