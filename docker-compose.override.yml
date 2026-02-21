@@ -1,0 +1,51 @@
+# Hot-reload development mode.
+#
+# Loaded automatically by `docker compose up` — no flags needed.
+# Production: docker compose -f docker-compose.yml up
+#
+# First time or after package.json / pnpm-lock.yaml changes:
+#   docker compose up --build
+#
+# Normal workflow (source changes hot-reload automatically):
+#   docker compose up
+#
+# If packages/shared types change, rebuild the api image:
+#   docker compose up --build api
+
+services:
+  api:
+    build:
+      context: .
+      dockerfile: apps/api/Dockerfile.dev
+    # tsx is in apps/api's devDependencies, so its bin link is at
+    # apps/api/node_modules/.bin/tsx — not the workspace root.
+    # `pnpm --filter ... exec` runs in the package's directory where tsx is found.
+    command: ["pnpm", "--filter", "@digital-library/api", "exec", "tsx", "watch", "src/index.ts"]
+    volumes:
+      - ./apps/api/src:/app/apps/api/src
+    environment:
+      NODE_ENV: development
+    restart: "no"
+
+  web:
+    build:
+      context: .
+      dockerfile: apps/web/Dockerfile.dev
+    volumes:
+      - ./apps/web/src:/app/apps/web/src
+      - ./apps/web/static:/app/apps/web/static
+    environment:
+      NODE_ENV: development
+    restart: "no"
+
+  caddy:
+    # Use a dev Caddyfile that only serves http://localhost.
+    # Avoids ACME challenges for library.cuatro.dev which would fail locally
+    # and burn through Let's Encrypt rate limits (risking production renewals).
+    #
+    # Set both entrypoint and command explicitly to avoid ambiguity from
+    # whatever the base image and docker-compose.yml leave as defaults.
+    entrypoint: ["caddy"]
+    command: ["run", "--config", "/etc/caddy/Caddyfile.dev", "--adapter", "caddyfile"]
+    volumes:
+      - ./Caddyfile.dev:/etc/caddy/Caddyfile.dev:ro

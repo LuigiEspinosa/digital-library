@@ -46,8 +46,6 @@ export const actions: Actions = {
 
     const err = await adminGrantAccess(cookie, userId, params.id);
     if (err) return fail(400, { grantError: err });
-
-    return {};
   },
 
   revoke: async ({ request, params }) => {
@@ -59,7 +57,5 @@ export const actions: Actions = {
 
     const err = await adminRevokeAccess(cookie, userId, params.id);
     if (err) return fail(400, { revokeError: err });
-
-    return {};
   },
 };

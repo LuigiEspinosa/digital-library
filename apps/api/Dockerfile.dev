@@ -1,0 +1,40 @@
+FROM node:22-slim AS base
+ENV PNPM_HOME="/pnpm"
+ENV PATH="$PNPM_HOME:$PATH"
+RUN corepack enable
+
+# ---- Dependencies ----
+FROM base AS deps
+WORKDIR /app
+RUN apt-get update && apt-get install -y \
+    python3 \
+    make \
+    g++ \
+    && rm -rf /var/lib/apt/lists/*
+
+COPY package.json pnpm-workspace.yaml pnpm-lock.yaml* ./
+COPY packages/shared/package.json ./packages/shared/
+COPY apps/api/package.json ./apps/api/
+
+# Install all deps including devDependencies (tsx, typescript, etc.)
+# No --ignore-scripts: better-sqlite3 requires its postinstall to compile
+# the native .node binding from source (node-gyp). python3/make/g++ handle it.
+RUN pnpm install --frozen-lockfile --filter @digital-library/api...
+
+# ---- Dev image ----
+FROM deps AS dev
+WORKDIR /app
+
+COPY tsconfig.json ./
+COPY packages/shared ./packages/shared
+
+# Build shared so the API can import @digital-library/shared
+RUN pnpm --filter @digital-library/shared build
+
+# Copy API source — will be overridden by the bind mount at runtime.
+# Having it here means the image works even without a volume (e.g. CI).
+COPY apps/api ./apps/api
+
+# tsx is in apps/api's devDependencies; its bin is at apps/api/node_modules/.bin/tsx.
+# `pnpm --filter ... exec` runs in the package directory where tsx is found.
+CMD ["pnpm", "--filter", "@digital-library/api", "exec", "tsx", "watch", "src/index.ts"]

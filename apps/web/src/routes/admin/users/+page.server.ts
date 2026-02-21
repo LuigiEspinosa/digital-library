@@ -57,7 +57,5 @@ export const actions: Actions = {
 
     const error = await deleteUser(cookie, userId);
     if (error) return fail(400, { deleteError: error });
-
-    return {}
   },
 };

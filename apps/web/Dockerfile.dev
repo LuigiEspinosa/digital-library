@@ -1,0 +1,27 @@
+FROM node:22-slim AS base
+ENV PNPM_HOME="/pnpm"
+ENV PATH="$PNPM_HOME:$PATH"
+RUN corepack enable
+
+# ---- Dependencies ----
+FROM base AS deps
+WORKDIR /app
+
+COPY package.json pnpm-workspace.yaml pnpm-lock.yaml* ./
+COPY packages/shared/package.json ./packages/shared/
+COPY apps/web/package.json ./apps/web/
+
+RUN pnpm install --frozen-lockfile --ignore-scripts --filter @digital-library/web...
+
+# ---- Dev image ----
+FROM deps AS dev
+WORKDIR /app
+
+COPY packages/shared ./packages/shared
+
+# Copy web source — will be overridden by bind mounts at runtime.
+COPY apps/web ./apps/web
+
+# `pnpm --filter` runs the dev script in the apps/web package context,
+# so Vite picks up apps/web/vite.config.ts (host: true, port: 3000).
+CMD ["pnpm", "--filter", "@digital-library/web", "run", "dev"]

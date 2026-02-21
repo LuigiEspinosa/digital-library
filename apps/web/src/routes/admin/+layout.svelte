@@ -12,7 +12,7 @@
 				<a href="/" class="font-semibold tracking-tight">📚 Library</a>
 				<span class="text-muted-foreground">/</span>
 				<span class="font-medium">Admin</span>
-				<span class="text-muted-foreground">/</span>
+				<span class="text-muted-foreground">|</span>
 
 				<nav class="flex items-center gap-4">
 					<a

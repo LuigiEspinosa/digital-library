@@ -16,8 +16,7 @@
 	"types": "./dist/index.d.ts",
 	"scripts": {
 		"build": "tsc",
-		"typecheck": "tsc --noEmit",
-		"prepare": "tsc"
+		"typecheck": "tsc --noEmit"
 	},
 	"devDependencies": {
 		"typescript": "^5.4.0"

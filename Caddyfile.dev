@@ -1,0 +1,17 @@
+# Development-only Caddyfile.
+# No domain block — no ACME challenges, no TLS, no rate-limit risk.
+# Access the app at http://localhost (port 80).
+
+http://localhost {
+  handle /api/* {
+    reverse_proxy api:4000
+  }
+
+  handle /files/* {
+    reverse_proxy api:4000
+  }
+
+  handle {
+    reverse_proxy web:3000
+  }
+}

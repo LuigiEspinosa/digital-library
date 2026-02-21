@@ -32,7 +32,5 @@ export const actions: Actions = {
 
     const error = await adminDeleteLibrary(cookie, id);
     if (error) return fail(400, { deleteError: error });
-
-    return {};
   },
 };
