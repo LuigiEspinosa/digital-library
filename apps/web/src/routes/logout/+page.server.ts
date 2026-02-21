@@ -1,7 +1,13 @@
 import { redirect } from '@sveltejs/kit';
-import type { Actions } from './$types';
+import type { Actions, PageServerLoad } from './$types';
 
 const API_URL = process.env.PUBLIC_API_URL ?? 'http://api:4000';
+
+export const load: PageServerLoad = async ({ parent }) => {
+  const { user } = await parent();
+  if (!user) redirect(302, '/login');
+  return {};
+};
 
 export const actions: Actions = {
   default: async ({ request, cookies }) => {
@@ -18,4 +24,4 @@ export const actions: Actions = {
     cookies.delete('auth_session', { path: '/' });
     redirect(302, '/login');
   }
-}
+};
