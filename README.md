@@ -135,17 +135,17 @@ pnpm typecheck
 
 ## Build Phases
 
-| #   | Phase                                        | Status  |
-| --- | -------------------------------------------- | ------- |
-| 1   | Monorepo scaffold + Docker Compose           | ✅ Done |
-| 2   | Auth system (auth, sessions, ACL)            | ✅ Done |
-| 3   | Library management CRUD                      | 🔜      |
-| 4   | File import, deduplication, metadata extract | 🔜      |
-| 5   | Library browse UI                            | 🔜      |
-| 6   | Full-text search (FTS5)                      | 🔜      |
-| 7   | EPUB reader                                  | 🔜      |
-| 8   | PDF reader                                   | 🔜      |
-| 9   | Comic/image reader                           | 🔜      |
-| 10  | Metadata enrichment (OpenLibrary, ComicVine) | 🔜      |
-| 11  | Kindle send                                  | 🔜      |
-| 12  | Polish & deploy                              | 🔜      |
+| #   | Phase                                        | Status         |
+| --- | -------------------------------------------- | -------------- |
+| 1   | Monorepo scaffold + Docker Compose           | ✅ Done        |
+| 2   | Auth system (auth, sessions, ACL)            | ✅ Done        |
+| 3   | Library management CRUD                      | ✅ Done        |
+| 4   | File import, deduplication, metadata extract | 🚧 In progress |
+| 5   | Library browse UI                            | 🔜             |
+| 6   | Full-text search (FTS5)                      | 🔜             |
+| 7   | EPUB reader                                  | 🔜             |
+| 8   | PDF reader                                   | 🔜             |
+| 9   | Comic/image reader                           | 🔜             |
+| 10  | Metadata enrichment (OpenLibrary, ComicVine) | 🔜             |
+| 11  | Kindle send                                  | 🔜             |
+| 12  | Polish & deploy                              | 🔜             |
