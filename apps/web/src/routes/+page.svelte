@@ -15,6 +15,13 @@
 			<span class="font-semibold tracking-tight">Library</span>
 			<div class="flex items-center gap-4">
 				<span class="text-sm text-muted-foreground">{data.user?.email}</span>
+
+				{#if data.user?.is_admin}
+					<a href="/admin/users">
+						<Button variant="outline" size="sm">Admin</Button>
+					</a>
+				{/if}
+
 				<form method="POST" action="/logout">
 					<Button type="submit" variant="ghost" size="sm">Sign out</Button>
 				</form>
