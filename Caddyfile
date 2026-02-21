@@ -17,7 +17,7 @@ library.cuatro.dev {
 
 http://localhost {
   handle /api/* {
-    reverse_proxy api: 4000
+    reverse_proxy api:4000
   }
 
   handle /files/* {
