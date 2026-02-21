@@ -14,3 +14,17 @@ library.cuatro.dev {
     reverse_proxy web:3000
   }
 }
+
+http://localhost {
+  handle /api/* {
+    reverse_proxy api:4000
+  }
+
+  handle /files/* {
+    reverse_proxy api:4000
+  }
+
+  handle {
+    reverse_proxy web:3000
+  }
+}

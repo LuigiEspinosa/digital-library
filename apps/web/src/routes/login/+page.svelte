@@ -1,126 +1,63 @@
 <script lang="ts">
 	import { enhance } from "$app/forms";
 	import type { ActionData } from "./$types";
+	import { Button } from "$lib/components/ui/button";
+	import * as Card from "$lib/components/ui/card";
+	import { Input } from "$lib/components/ui/input";
+	import { Label } from "$lib/components/ui/label";
 
-	export let form: ActionData;
+	let { form }: { form: ActionData } = $props();
 </script>
 
 <svelte:head>
-	<title>Cuatro Digital Library</title>
+	<title>Sign In - Library</title>
 </svelte:head>
 
-<main class="login-wrap">
-	<div class="login-card">
-		<h1>📚 Library</h1>
-		<p class="subtitle">Sign in to your account</p>
+<main class="min-h-screen flex items-center justify-center bg-muted/40 px-4">
+	<Card.Root class="w-full max-w-sm">
+		<Card.Header class="space-y-1">
+			<Card.Title class="text-2xl">Library</Card.Title>
+			<Card.Description>Sign in to your account</Card.Description>
+		</Card.Header>
 
-		{#if form?.error}
-			<div class="error" role="alert">{form.error}</div>
-		{/if}
+		<Card.Content>
+			{#if form?.error}
+				<div
+					class="mb-4 rounded-md border border-destructive/30 bg-destructive/10 px-4 py-3 text-sm text-destructive"
+					role="alert"
+				>
+					{form.error}
+				</div>
+			{/if}
 
-		<form method="POST" use:enhance>
-			<label>
-				Email
-				<input type="email" name="email" value={form?.email ?? ""} required autocomplete="email" />
-			</label>
+			<form method="POST" use:enhance class="space-y-4">
+				<div class="space-y-2">
+					<Label for="email">Email</Label>
+					<Input
+						id="email"
+						type="email"
+						name="email"
+						value={form?.email ?? ""}
+						required
+						autocomplete="email"
+						placeholder="you@example.com"
+					/>
+				</div>
 
-			<label>
-				Password
-				<input
-					type="password"
-					name="password"
-					required
-					autocomplete="current-password"
-					minlength="1"
-				/>
-			</label>
+				<div class="space-y-2">
+					<Label for="password">Password</Label>
+					<Input
+						id="password"
+						type="password"
+						name="password"
+						required
+						autocomplete="current-password"
+						minlength={1}
+					/>
+				</div>
 
-			<button type="submit">Sign in</button>
-		</form>
-	</div>
+				<Button type="submit" class="w-full">Sign in</Button>
+			</form>
+		</Card.Content>
+	</Card.Root>
 </main>
-
-<style>
-	.login-wrap {
-		min-height: 100vh;
-		display: flex;
-		align-items: center;
-		justify-content: center;
-		background: #f5f5f0;
-		font-family: system-ui, sans-serif;
-	}
-
-	.login-card {
-		background: white;
-		padding: 2.5rem;
-		border-radius: 12px;
-		box-shadow: 0 4px 24px rgba(0, 0, 0, 0.08);
-		width: 100%;
-		max-width: 400px;
-	}
-
-	h1 {
-		margin: 0 0 0.25rem;
-		font-size: 1.75rem;
-	}
-
-	.subtitle {
-		margin: 0 0 1.5rem;
-		color: #666;
-		font-size: 0.95rem;
-	}
-
-	.error {
-		background: #fff0f0;
-		border: 1px solid #ffcccc;
-		color: #cc0000;
-		padding: 0.75rem 1rem;
-		border-radius: 6px;
-		margin-bottom: 1rem;
-		font-size: 0.9rem;
-	}
-
-	form {
-		display: flex;
-		flex-direction: column;
-		gap: 1rem;
-	}
-
-	label {
-		display: flex;
-		flex-direction: column;
-		gap: 0.35rem;
-		font-size: 0.9rem;
-		font-weight: 500;
-		color: #333;
-	}
-
-	input {
-		padding: 0.6rem 0.8rem;
-		border: 1px solid #ddd;
-		border-radius: 6px;
-		font-size: 1rem;
-		outline: none;
-		transition: border-color 0.15s;
-	}
-
-	input:focus {
-		border-color: #555;
-	}
-
-	button {
-		margin-top: 0.5rem;
-		padding: 0.7rem;
-		background: #1a1a1a;
-		color: white;
-		border: none;
-		border-radius: 6px;
-		font-size: 1rem;
-		cursor: pointer;
-		transition: background 0.15s;
-	}
-
-	button:hover {
-		background: #333;
-	}
-</style>

@@ -260,3 +260,4 @@ build/
 data/
 coverage/
 .pnpm-store/
+data/*.db

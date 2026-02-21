@@ -28,7 +28,7 @@ export const actions: Actions = {
         body: JSON.stringify({ email, password }),
       });
     } catch {
-      return fail(500, { error: 'Could not react the server', email });
+      return fail(500, { error: 'Could not reach the server', email });
     }
 
     if (!res.ok) {

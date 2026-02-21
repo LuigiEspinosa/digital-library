@@ -38,7 +38,7 @@ jobs:
           key: ${{ secrets.SERVER_SSH_KEY }}
           port: ${{ secrets.SERVER_PORT }}
           script: |
-            cd /opt/library
+            cd /opt/digital-library
             git pull origin main
             docker compose up -d --build
             docker image prune -f
