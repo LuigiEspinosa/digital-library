@@ -12,6 +12,7 @@ import { authRoutes } from "./routes/auth.js";
 import { bookRoutes } from "./routes/books.js";
 import { libraryRoutes } from "./routes/libraries.js";
 import { adminUserRoutes } from "./routes/admin/users.js";
+import { adminLibraryRoutes } from "./routes/admin/libraries.js";
 
 interface BuildOptions {
   // Pass ':memory:' in tests for a clean in-memory DB each run
@@ -75,6 +76,7 @@ export async function build(opts: BuildOptions = {}): Promise<FastifyInstance> {
       await api.register(bookRoutes);
       await api.register(libraryRoutes);
       await api.register(adminUserRoutes, { prefix: '/admin' });
+      await api.register(adminLibraryRoutes, { prefix: '/admin' });
     },
     { prefix: '/api' }
   );

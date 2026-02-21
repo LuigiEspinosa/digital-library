@@ -13,12 +13,19 @@
 				<span class="text-muted-foreground">/</span>
 				<span class="font-medium">Admin</span>
 				<span class="text-muted-foreground">/</span>
+
 				<nav class="flex items-center gap-4">
 					<a
 						href="/admin/users"
 						class="text-muted-foreground transition-colors hover:text-foreground"
 					>
 						Users
+					</a>
+					<a
+						href="/admin/libraries"
+						class="text-muted-foreground transition-colors hover:text-foreground"
+					>
+						Libraries
 					</a>
 				</nav>
 			</div>
