@@ -1,16 +1,13 @@
 # Hot-reload development mode.
 #
-# Loaded automatically by `docker compose up` — no flags needed.
-# Production: docker compose -f docker-compose.yml up
+# NOT loaded automatically — must be specified explicitly:
+#   docker compose -f docker-compose.yml -f docker-compose.dev.yml up
 #
-# First time or after package.json / pnpm-lock.yaml changes:
-#   docker compose up --build
-#
-# Normal workflow (source changes hot-reload automatically):
-#   docker compose up
+# First time or after package.json / pnpm-lock.yaml changes, add --build:
+#   docker compose -f docker-compose.yml -f docker-compose.dev.yml up --build
 #
 # If packages/shared types change, rebuild the api image:
-#   docker compose up --build api
+#   docker compose -f docker-compose.yml -f docker-compose.dev.yml up --build api
 
 services:
   api:
