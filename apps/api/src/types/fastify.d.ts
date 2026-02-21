@@ -1,5 +1,5 @@
 import type { Db } from '../db/connection.js';
-import type { Session, User } from '@library/shared';
+import type { Session, User } from '@digital-library/shared';
 
 declare module 'fastify' {
   interface FastifyInstance {

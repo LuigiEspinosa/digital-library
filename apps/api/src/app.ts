@@ -41,9 +41,9 @@ export async function build(opts: BuildOptions = {}): Promise<FastifyInstance> {
   fastify.decorate('db', db);
 
   // Decorate every request with null defatuls so TypeScript is satisfied
-  // eveon on routes that don't run requireAuth.
-  fastify.decorate('user', null);
-  fastify.decorate('session', null);
+  // even on routes that don't run requireAuth.
+  fastify.decorateRequest('user', null);
+  fastify.decorateRequest('session', null);
 
   // ---- First-run admin seed ----
   // If no users exist and ADMIN_EMAIL + ADMIN_PASSWORD are set,
