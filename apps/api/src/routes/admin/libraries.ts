@@ -3,8 +3,7 @@ import { mkdir, rm } from "node:fs/promises";
 import path from "node:path";
 import { LibraryRepository } from "../../db/repositories/LibraryRepository.js";
 import { requireAdmin } from "../../middleware/auth.js";
-import { kMaxLength } from "node:buffer";
-import { request } from "node:http";
+import { grantAccess } from "../../acl.js";
 
 interface LibraryBody {
   name: string;
@@ -59,6 +58,8 @@ export const adminLibraryRoutes: FastifyPluginAsync = async (fastify) => {
       const { name, description } = request.body;
       const library = libs.create({ name, description });
       await mkdir(path.join(dataDir, 'books', library.id), { recursive: true });
+      // Auto-grant the creating admin access so they retain access if ever de-promoted.
+      grantAccess(fastify.db, request.user!.id, library.id);
       return reply.code(201).send({ library });
     }
   );
