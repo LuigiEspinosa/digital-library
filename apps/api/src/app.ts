@@ -2,6 +2,8 @@ import Fastify, { type FastifyInstance } from "fastify";
 import cors from '@fastify/cors';
 import helmet from "@fastify/helmet";
 import cookie from '@fastify/cookie';
+import multipart from '@fastify/multipart';
+import staticPlugin from '@fastify/static';
 
 import { createDb } from "./db/connection.js";
 import { runMigrations } from "./db/migration.js";
@@ -35,6 +37,19 @@ export async function build(opts: BuildOptions = {}): Promise<FastifyInstance> {
 
   // @fastify/cookie is required so reply.setCookie() works.
   await fastify.register(cookie);
+
+  await fastify.register(multipart, {
+    limits: {
+      fileSize: Number(process.env.MAX_UPLOAD_BYTES ?? 500 * 1024 * 1024), // 500 MB default
+      files: 1,
+    }
+  });
+
+  await fastify.register(staticPlugin, {
+    root: process.env.COVERS_PATH ?? '/data/covers',
+    prefix: '/files/covers',
+    decorateReply: false,
+  });
 
   // ---- Database ----
   const db = createDb(opts.db);
