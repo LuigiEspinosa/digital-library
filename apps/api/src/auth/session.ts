@@ -1,11 +1,11 @@
 /**
- * Hand-rolled session management — replaces lucia after deprecation.
+ * Hand-rolled session management - replaces lucia after deprecation.
  *
  * Design:
  *  - Session IDs are 32 cryptographically random bytes (64 hex chars).
  *  - Stored raw in the sessions table (the table itself has no public exposure).
  *  - Sessions expire after SESSION_MAX_AGE seconds (default 30 days).
- *  - Cookies: httpOnly, sameSite=strict, secure in production — per guide §6.1.
+ *  - Cookies: httpOnly, sameSite=strict, secure in production - per guide §6.1.
  *  - Sessions are silently extended when past their half-life (lazy extension).
  */
 
@@ -68,7 +68,7 @@ export function validateSession(
 
   const now = Math.floor(Date.now() / 1000);
 
-  // Expired — delete and reject
+  // Expired - delete and reject
   if (row.expires_at < now) {
     db.prepare('DELETE FROM sessions WHERE id = ?').run(sessionId);
     return { session: null, user: null };

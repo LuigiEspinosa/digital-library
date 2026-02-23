@@ -14,7 +14,7 @@
 </script>
 
 <svelte:head>
-	<title>Users — Admin</title>
+	<title>Users - Admin</title>
 </svelte:head>
 
 <div class="space-y-6">

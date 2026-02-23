@@ -1,4 +1,4 @@
-import type { Library, User } from '@digital-library/shared';
+import type { Book, Library, User } from '@digital-library/shared';
 
 const API_URL = process.env.PUBLIC_API_URL ?? 'http://api:4000';
 
@@ -188,4 +188,24 @@ export async function adminRevokeAccess(
     return body.message ?? 'Failed to revoke access.';
   }
   return null;
+}
+
+export async function getLibrary(cookie: string, id: string): Promise<Library | null> {
+  try {
+    const res = await fetch(`${API_URL}/api/libraries/${id}`, { headers: { cookie } });
+    if (!res.ok) return null;
+    return (await res.json()).library ?? null;
+  } catch {
+    return null;
+  }
+}
+
+export async function listLibraryBooks(cookie: string, libraryId: string): Promise<Book[]> {
+  try {
+    const res = await fetch(`${API_URL}/api/libraries/${libraryId}/books`, { headers: { cookie } });
+    if (!res.ok) return [];
+    return (await res.json()).data ?? [];
+  } catch {
+    return [];
+  }
 }
