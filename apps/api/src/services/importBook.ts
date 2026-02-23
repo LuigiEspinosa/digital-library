@@ -1,5 +1,5 @@
 import { createHash } from "node:crypto";
-import { mkdir, rename, writeFile, readFile, stat } from "node:fs/promises";
+import { mkdir, rename, copyFile, unlink, readFile, stat } from "node:fs/promises";
 import path from "node:path";
 import sharp from "sharp";
 import type { Db } from "../db/connection.js";
@@ -25,6 +25,16 @@ export function detectFormat(filename: string): BookFormat | null {
 async function sha256File(filePath: string): Promise<string> {
   const buf = await readFile(filePath);
   return createHash('sha256').update(buf).digest('hex');
+}
+
+async function moveFile(src: string, dest: string): Promise<void> {
+  try {
+    await rename(src, dest);
+  } catch (err: any) {
+    if (err.code !== 'EXDEV') throw err;
+    await copyFile(src, dest);
+    await unlink(src);
+  }
 }
 
 async function generateCover(
@@ -80,7 +90,7 @@ export async function importBook(
    * No risk of a partial file being served. If temp and destination are on
    * different filesystems (e.g. a Docker bind mount boundary), `rename` will throw `EXDEV`.
    */
-  await rename(sourcePath, destPath);
+  await moveFile(sourcePath, destPath);
 
   // 3. Extract metadata
   const fileStats = await stat(destPath);

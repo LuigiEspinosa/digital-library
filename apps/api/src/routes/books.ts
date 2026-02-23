@@ -98,6 +98,8 @@ export const bookRoutes: FastifyPluginAsync = async (fastify) => {
       return reply.code(403).send({ statusCode: 403, error: 'Forbidden', message: 'Admin only.' });
     }
     repo.delete(id);
+    await unlink(book.file_path).catch(() => { });
+    if (book.cover_path) await unlink(book.cover_path).catch(() => { });
     reply.code(204).send();
   });
 };

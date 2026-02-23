@@ -140,6 +140,12 @@
 								>
 									{book.format.toUpperCase()}
 								</span>
+								<form method="POST" action="?/delete" use:enhance>
+									<input type="hidden" name="bookId" value={book.id} />
+									<button type="submit" class="mt-2 text-[10px] text-destructive hover:underline">
+										Delete
+									</button>
+								</form>
 							</div>
 						</div>
 					{/each}

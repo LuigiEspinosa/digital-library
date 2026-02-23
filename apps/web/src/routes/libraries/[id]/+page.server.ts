@@ -8,7 +8,7 @@ const API_URL = process.env.PUBLIC_API_URL ?? 'http://api:4000';
 
 function coverUrl(book: Book): string | undefined {
   if (!book.cover_path) return undefined;
-  return `${API_URL}/files/covers/${path.basename(book.cover_path)}`;
+  return `/files/covers/${path.basename(book.cover_path)}`;
 }
 
 export const load: PageServerLoad = async ({ request, params, parent }) => {
@@ -61,5 +61,24 @@ export const actions: Actions = {
     if (res.status === 403) return fail(403, { error: 'You do not have upload access to this library.' });
 
     return fail(res.status, { error: body.message ?? 'Upload failed. ' });
+  },
+
+  delete: async ({ request }) => {
+    const cookie = request.headers.get('cookie') ?? '';
+    const formData = await request.formData();
+    const bookId = formData.get('bookId')?.toString();
+    if (!bookId) return fail(400, { error: 'Missing book ID. ' });
+
+    const res = await fetch(`${API_URL}/api/books/${bookId}`, {
+      method: 'DELETE',
+      headers: { cookie },
+    });
+
+    if (res.status !== 204) {
+      const body = await res.json().catch(() => ({}));
+      return fail(res.status, { error: body.message ?? 'Delete failed.' });
+    }
+
+    return { deleted: true };
   },
 };
