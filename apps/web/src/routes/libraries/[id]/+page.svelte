@@ -112,7 +112,7 @@
 					{#each data.books as book (book.id)}
 						<div class="group rounded-lg border bg-card overflow-hidden shadow-sm">
 							<!-- Cover -->
-							<div class="aspect-[2/3] bg-muted flex items-center justify-center">
+							<div class="aspect-2/3 bg-muted flex items-center justify-center">
 								{#if book.coverUrl}
 									<img
 										src={book.coverUrl}

@@ -1,6 +1,6 @@
 import { readFile } from "node:fs/promises";
 import path from "node:path";
-import { ExtractedMetadata } from "../services/metadata";
+import { ExtractedMetadata } from "../metadata.js";
 
 export async function extractPdfMetadata(filePath: string): Promise<ExtractedMetadata> {
   const basename = path.basename(filePath, '.pdf');

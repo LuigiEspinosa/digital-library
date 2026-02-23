@@ -1,6 +1,6 @@
 import path from "node:path";
 import unzipper from 'unzipper';
-import type { ExtractedMetadata } from "../services/metadata";
+import { ExtractedMetadata } from "../metadata.js";
 
 const IMAGE_RE = /\.(jpe?g|png|webp|gif)$/i;
 

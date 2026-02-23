@@ -1,6 +1,6 @@
 import path from "node:path";
 import unzipper from "unzipper";
-import { ExtractedMetadata } from "../services/metadata";
+import { ExtractedMetadata } from "../metadata.js";
 
 function extractXmlText(xml: string, tag: string): string | null {
   const match = xml.match(new RegExp(`<${tag}(?:\\s[^>]*)?>([^<]+)</${tag}>`, 'i'));

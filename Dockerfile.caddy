@@ -1,0 +1,7 @@
+# Build a custom Caddy binary with the Hetzner DNS provider plugin.
+# This enables DNS-01 ACME challenges, which avoids all HTTP/ALPN port issues.
+FROM caddy:2-builder AS builder
+RUN xcaddy build --with github.com/caddy-dns/hetzner
+
+FROM caddy:2-alpine
+COPY --from=builder /usr/bin/caddy /usr/bin/caddy

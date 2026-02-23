@@ -16,7 +16,7 @@ export interface Book {
   // JSON array string stored in SQLite, parsed to string[] by the API
   tags?: string[];
   isbn?: string;
-  publised_at?: string;
+  published_at?: string;
   page_count?: number;
   file_size?: number;
   created_at: string;

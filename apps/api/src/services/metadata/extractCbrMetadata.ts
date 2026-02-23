@@ -1,7 +1,7 @@
 import { execFile } from "node:child_process";
 import { promisify } from "node:util";
 import path from 'node:path';
-import type { ExtractedMetadata } from "../services/metadata";
+import { ExtractedMetadata } from "../metadata.js";
 
 const execFileAsync = promisify(execFile);
 const IMAGE_RE = /\.(jpe?g|png|webp)$/i;
