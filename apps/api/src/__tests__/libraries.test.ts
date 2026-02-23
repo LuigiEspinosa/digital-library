@@ -307,7 +307,7 @@ describe('Admin library CRUD', () => {
     expect(library.description).toBe('New desc');
   });
 
-  test('PATCH updates only name — description is preserved', async () => {
+  test('PATCH updates only name - description is preserved', async () => {
     const libId = insertLibrary(app, 'Old Name', 'Keep this');
 
     const res = await app.inject({
@@ -364,7 +364,7 @@ describe('Admin library CRUD', () => {
     expect(res.statusCode).toBe(404);
   });
 
-  test('DELETE cascades to user_libraries — user_count drops to 0', async () => {
+  test('DELETE cascades to user_libraries - user_count drops to 0', async () => {
     const libId = insertLibrary(app, 'Cascade Test');
     const users = new UserRepository(getDb(app));
     const user = await users.create({ email: 'temp@example.com', password: 'temppass' });
@@ -378,7 +378,7 @@ describe('Admin library CRUD', () => {
       headers: { cookie: adminCookie },
     });
 
-    // Library gone — FK cascade cleaned user_libraries
+    // Library gone - FK cascade cleaned user_libraries
     const row = getDb(app)
       .prepare('SELECT COUNT(*) as count FROM user_libraries WHERE library_id = ?')
       .get(libId) as { count: number };

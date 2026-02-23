@@ -79,7 +79,7 @@ describe('Auth routes', () => {
     expect(meRes.json().user.email).toBe('bob@example.com');
   });
 
-  test('logout invalidates session — subsequent /me returns 401', async () => {
+  test('logout invalidates session - subsequent /me returns 401', async () => {
     const users = new UserRepository(getDb(app));
     await users.create({ email: 'carol@example.com', password: 'password123' });
 
