@@ -5,6 +5,10 @@ ENV PNPM_HOME="/pnpm"
 ENV PATH="$PNPM_HOME:$PATH"
 RUN corepack enable
 
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    unrar-free \
+    && rm -rf /var/lib/apt/lists/*
+
 # ---- Dependencies ----
 FROM base AS deps
 WORKDIR /app
@@ -12,13 +16,20 @@ RUN apt-get update && apt-get install -y \
     python3 \
     make \
     g++ \
+    libcairo2-dev \
+    libpango1.0-dev \
+    libjpeg-dev \
+    libgif-dev \
+    librsvg2-dev \
+    pkg-config \
+    unrar-free \
     && rm -rf /var/lib/apt/lists/*
 
 COPY package.json pnpm-workspace.yaml pnpm-lock.yaml* ./
 COPY packages/shared/package.json ./packages/shared/
 COPY apps/api/package.json ./apps/api/
 
-RUN pnpm install --frozen-lockfile --ignore-scripts --filter @digital-library/api...
+RUN pnpm install --frozen-lockfile --filter @digital-library/api...
 
 # ---- Build ----
 FROM deps AS build
@@ -46,9 +57,16 @@ RUN apt-get update && apt-get install -y \
     python3 \
     make \
     g++ \
+    libcairo2-dev \
+    libpango1.0-dev \
+    libjpeg-dev \
+    libgif-dev \
+    librsvg2-dev \
+    pkg-config \
+    unrar-free \
     && rm -rf /var/lib/apt/lists/*
 
-# Flat node_modules — no workspace symlinks, shared package bundled inside
+# Flat node_modules - no workspace symlinks, shared package bundled inside
 COPY --from=deploy /app/api-prod/node_modules ./node_modules
 
 # Compiled API
