@@ -4,10 +4,21 @@ import { build } from '../app.js';
 
 describe('Health endpoint', () => {
   let app: FastifyInstance;
+  let adminCookie: string;
 
   beforeEach(async () => {
     // Fresh in-memory DB each run
     app = await build({ db: ':memory:', logger: false });
+
+    const { UserRepository } = await import('../db/repositories/UserRepository.js');
+    const users = new UserRepository((app as any).db);
+    await users.create({ email: 'admin@test.com', password: 'pass', is_admin: true });
+    const login = await app.inject({
+      method: 'POST',
+      url: '/api/auth/login',
+      payload: { email: 'admin@test.com', password: 'pass' },
+    });
+    adminCookie = login.headers['set-cookie'] as string;
   });
 
   afterEach(async () => {
@@ -33,6 +44,7 @@ describe('Health endpoint', () => {
     const res = await app.inject({
       method: 'GET',
       url: '/api/books',
+      headers: { cookie: adminCookie },
     });
 
     expect(res.statusCode).toBe(200);
@@ -46,6 +58,7 @@ describe('Health endpoint', () => {
     const res = await app.inject({
       method: 'GET',
       url: '/api/books/nonexistent',
+      headers: { cookie: adminCookie },
     });
 
     expect(res.statusCode).toBe(404);

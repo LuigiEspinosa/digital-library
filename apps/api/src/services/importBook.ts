@@ -7,8 +7,8 @@ import { BookRepository } from "../db/repositories/BookRepository.js";
 import { extractMetadata } from "./metadata.js";
 import type { Book, BookFormat } from "@digital-library/shared";
 
-const BOOKS_ROOT = process.env.BOOKS_PATH ?? '/data/books';
-const COVERS_ROOT = process.env.COVERS_PATH ?? '/data/covers';
+const booksRoot = () => process.env.BOOKS_PATH ?? '/data/books';
+const coversRoot = () => process.env.COVERS_PATH ?? '/data/covers';
 
 const FORMAT_MAP: Record<string, BookFormat> = {
   epub: 'epub',
@@ -31,8 +31,8 @@ async function generateCover(
   bookId: string,
   coverData: Buffer,
 ): Promise<string> {
-  await mkdir(COVERS_ROOT, { recursive: true });
-  const outPath = path.join(COVERS_ROOT, `${bookId}.jpg`);
+  await mkdir(coversRoot(), { recursive: true });
+  const outPath = path.join(coversRoot(), `${bookId}.jpg`);
 
   await sharp(coverData)
     .resize(300, 450, { fit: 'cover', position: 'top' })
@@ -71,7 +71,7 @@ export async function importBook(
   const { nanoid } = await import('nanoid');
   const id = nanoid();
   const ext = path.extname(originalFilename).toLowerCase();
-  const destDir = path.join(BOOKS_ROOT, libraryId);
+  const destDir = path.join(booksRoot(), libraryId);
   await mkdir(destDir, { recursive: true });
   const destPath = path.join(destDir, `${id}${ext}`);
 
@@ -84,7 +84,7 @@ export async function importBook(
 
   // 3. Extract metadata
   const fileStats = await stat(destPath);
-  const meta = await extractMetadata(destPath, format);
+  const meta = await extractMetadata(destPath, format, path.basename(originalFilename, ext));
 
   // 4. Generate cover thumbnail
   let cover_path: string | undefined;

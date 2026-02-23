@@ -261,3 +261,7 @@ data/
 coverage/
 .pnpm-store/
 data/*.db
+
+# Claude
+.claude/
+CLAUDE.md

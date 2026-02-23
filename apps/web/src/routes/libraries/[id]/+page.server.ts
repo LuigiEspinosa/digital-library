@@ -44,7 +44,7 @@ export const actions: Actions = {
 
     let res: Response;
     try {
-      res = await fetch(`${API_URL}/api/libraries/${params.is}/books`, {
+      res = await fetch(`${API_URL}/api/libraries/${params.id}/books`, {
         method: 'POST',
         headers: { cookie },
         body: apiForm,

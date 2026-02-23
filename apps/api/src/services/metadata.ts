@@ -18,10 +18,11 @@ export interface ExtractedMetadata {
 
 export async function extractMetadata(
   filePath: string,
-  format: BookFormat
+  format: BookFormat,
+  fallbackTitle?: string
 ): Promise<ExtractedMetadata> {
   const fallback: ExtractedMetadata = {
-    title: path.basename(filePath, path.extname(filePath)),
+    title: fallbackTitle ?? path.basename(filePath, path.extname(filePath)),
   };
 
   try {
