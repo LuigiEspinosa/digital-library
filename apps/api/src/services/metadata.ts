@@ -29,8 +29,20 @@ export async function extractMetadata(
     switch (format) {
       case 'epub': return await extractEpubMetadata(filePath);
       case 'pdf': return await extractPdfMetadata(filePath);
-      case 'cbz': return await extractCbzMetadata(filePath);
-      case 'cbr': return await extractCbrMetadata(filePath);
+      case 'cbz': {
+        const meta = await extractCbzMetadata(filePath);
+        return {
+          ...meta,
+          title: fallbackTitle ?? meta.title
+        };
+      }
+      case 'cbr': {
+        const meta = await extractCbrMetadata(filePath);
+        return {
+          ...meta,
+          title: fallbackTitle ?? meta.title
+        };
+      }
       case 'images': return fallback;
       default: return fallback;
     }
