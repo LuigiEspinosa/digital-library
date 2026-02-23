@@ -3,7 +3,7 @@ import { hash, verify } from '@node-rs/argon2';
 import type { Db } from '../connection.js';
 import type { User } from '@digital-library/shared';
 
-// Argon2id parameters — from OWASP recommendations
+// Argon2id parameters - from OWASP recommendations
 const ARGON2_OPTIONS = {
   memoryCost: 19456,
   timeCost: 2,
@@ -91,7 +91,7 @@ export class UserRepository {
     const row = this.findByEmail(email);
 
     if (!row) {
-      // Dummy hash — keeps response time constant (timing-attack prevention)
+      // Dummy hash - keeps response time constant (timing-attack prevention)
       await hash(password, ARGON2_OPTIONS);
       return null;
     }

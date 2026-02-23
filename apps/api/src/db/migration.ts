@@ -92,7 +92,7 @@ export function runMigrations(db: Db): void {
 
     -- ── Reading Progress ──────────────────────────────────────────────────
     -- position stores CFI string for EPUB, page number string for PDF/comics.
-    -- Never store epub.js page numbers — always use CFI.
+    -- Never store epub.js page numbers - always use CFI.
 
     CREATE TABLE IF NOT EXISTS reading_progress (
       user_id       TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
