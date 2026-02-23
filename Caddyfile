@@ -1,29 +1,21 @@
-library.cuatro.dev {
-  # API routes go to Fastify
-  handle /api/* {
-    reverse_proxy api:4000
-  }
-
-  # Static book/cover files served by the API
-  handle /files/* {
-    reverse_proxy api:4000
-  }
-
-  # Everything else goes to SvelteKit
-  handle {
-    reverse_proxy web:3000
-  }
+# HTTP → HTTPS redirect (no ACME challenge served here)
+:80 {
+  redir https://{host}{uri} 308
 }
 
-http://localhost {
+library.cuatro.dev {
+  tls {
+    # DNS-01 challenge via Hetzner DNS API.
+    # Bypasses HTTP/ALPN port issues entirely — proves ownership via TXT record.
+    dns hetzner {env.HETZNER_DNS_API_TOKEN}
+  }
+
   handle /api/* {
     reverse_proxy api:4000
   }
-
   handle /files/* {
     reverse_proxy api:4000
   }
-
   handle {
     reverse_proxy web:3000
   }

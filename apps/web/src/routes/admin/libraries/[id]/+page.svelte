@@ -12,7 +12,7 @@
 </script>
 
 <svelte:head>
-	<title>{data.library.name} — Admin</title>
+	<title>{data.library.name} - Admin</title>
 </svelte:head>
 
 <div class="space-y-8">

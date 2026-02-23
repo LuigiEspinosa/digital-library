@@ -14,10 +14,10 @@ Self-hosted, privacy-first digital library that handles EPUB, PDF, CBZ/CBR comic
 
 ### Core features
 
-- Ligtning-fast full-text search.
+- Lightning-fast full-text search.
 - User auth with per-library ACL.
 - Native EPUB / PDF / comic readers.
-- Rick metadata + auto-fetch.
+- Rich metadata + auto-fetch.
 - Send to Kindle via SMTP.
 - Auto-import file watcher.
 - Desktop first.
@@ -27,7 +27,7 @@ Self-hosted, privacy-first digital library that handles EPUB, PDF, CBZ/CBR comic
 | Technology                       | Why?                                                                                                                                                                                                                                                                                                                        |
 | -------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | **Fastify + TypeScript**         | 2x faster than Express, first-class TypeScript, great plugin ecosystem.                                                                                                                                                                                                                                                     |
-| **SvelteKit**                    | Tiny bundles (than Next.js), witch matters for a reading app that may run on a Raspberry Pi or low-end VPS, file-based routing, SSR out of the box, no virtual DOM overhead. Also, Svelte's reactivity model is a better fit for reader UI state (page position, zoom, layout mode) with less boilerplate than React hooks. |
+| **SvelteKit**                    | Tiny bundles (than Next.js), which matters for a reading app that may run on a Raspberry Pi or low-end VPS, file-based routing, SSR out of the box, no virtual DOM overhead. Also, Svelte's reactivity model is a better fit for reader UI state (page position, zoom, layout mode) with less boilerplate than React hooks. |
 | **SQLite (better-sqlite3)**      | Zero infra, file-based, ACID, blazing read speed for single-node self-hosted apps.                                                                                                                                                                                                                                          |
 | **SQLite FTS5**                  | Built into SQLite, no Elasticsearch overhead, supports prefix & phrase queries.                                                                                                                                                                                                                                             |
 | **epub.js (client-side)**        | De facto standard, supports CFI positions, reflow, custom CSS injection.                                                                                                                                                                                                                                                    |
@@ -36,9 +36,9 @@ Self-hosted, privacy-first digital library that handles EPUB, PDF, CBZ/CBR comic
 | **chokidar**                     | Battle-tested, cross-platform, handles rapid write bursts gracefully.                                                                                                                                                                                                                                                       |
 | **Calibre CLI (headless)**       | Industry standard, free, packaged in Docker for EPUB to MOBI/AZW3 conversion.                                                                                                                                                                                                                                               |
 | **BullMQ + Redis**               | Async metadata fetch and Kindle send jobs. Redis Alpine is only 30MB.                                                                                                                                                                                                                                                       |
-| **nodemailer + SMTP**            | Free with Gmail APp Password or any SMTP provider.                                                                                                                                                                                                                                                                          |
-| **Docker + Componse**            | One-command deploy, fully portable, no cloud lock-in.                                                                                                                                                                                                                                                                       |
-| **Caddy**                        | Auto HTTPS via Let's Encrypt, trivial config, single static library.                                                                                                                                                                                                                                                        |
+| **nodemailer + SMTP**            | Free with Gmail App Password or any SMTP provider.                                                                                                                                                                                                                                                                          |
+| **Docker + Compose**             | One-command deploy, fully portable, no cloud lock-in.                                                                                                                                                                                                                                                                       |
+| **Caddy**                        | Auto HTTPS via Let's Encrypt, trivial config, single static binary.                                                                                                                                                                                                                                                         |
 | **Vitest**                       | SvelteKit already uses internally, zero extra tooling, single test command.                                                                                                                                                                                                                                                 |
 
 ## Architecture
@@ -91,17 +91,17 @@ digital-library/
 | Pattern                        | Where & Why?                                                                                                                                                                         |
 | ------------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
 | **Repository Pattern**         | All DB access goes through typed repository classes (e.g. BookRepository, UserRepository). This keeps raw SQL out of route handlers and makes testing and future storage swaps easy. |
-| **Plugin Architecture**        | Each domain (books, auth, libraries, kindle) is a separate Fastify plugin registed with fastify.register(). Clean separation, lazy loading, and scoped decorators.                   |
-| **Command / Job Queue**        | Async work like metadata fetch, Kindle send, and thumbnail generator is dispatched as BullMQ jobs rather than blocking the HTTP request. The API returns 202 Accepted immediately.   |
-| **Adapter Pattern (Metadata)** | A MetadataAdapter interface with concrete implementations for OpenLibrary, ComicVine, and a FallbackAdapter. Adding a new metedata source does not touch business logic.             |
-| **Reader Strategy Pattern**    | A single `<Reader>` Svelte component dispatches to `<EpubReader>`, `<PdfReader>`. or `<ComicReader>` based on `book.format`. Each renders owns its own layout modes and settings.    |
+| **Plugin Architecture**        | Each domain (books, auth, libraries, kindle) is a separate Fastify plugin registered with fastify.register(). Clean separation, lazy loading, and scoped decorators.                 |
+| **Command / Job Queue**        | Async work like metadata fetch, Kindle send, and thumbnail generation is dispatched as BullMQ jobs rather than blocking the HTTP request. The API returns 202 Accepted immediately.  |
+| **Adapter Pattern (Metadata)** | A MetadataAdapter interface with concrete implementations for OpenLibrary, ComicVine, and a FallbackAdapter. Adding a new metadata source does not touch business logic.             |
+| **Reader Strategy Pattern**    | A single `<Reader>` Svelte component dispatches to `<EpubReader>`, `<PdfReader>`, or `<ComicReader>` based on `book.format`. Each reader owns its own layout modes and settings.     |
 | **FTS5 Shadow Table**          | A virtual FTS5 table mirrors the books table. An SQLite trigger keeps it in sync on insert/update. Searches hit FTS5 for ranking then JOIN back to the main table for metadata.      |
 
 ## One-Command Deploy
 
 ```bash
 git clone https://github.com/LuigiEspinosa/digital-library
-cd /digital-library
+cd digital-library
 cp .env.example .env
 # edit .env
 docker compose up -d
@@ -110,7 +110,7 @@ docker compose up -d
 ## Development
 
 ```bash
-# Prerequisites: Node 22, pnpm 9
+# Prerequisites: Node 22, pnpm 10
 corepack enable
 pnpm install
 

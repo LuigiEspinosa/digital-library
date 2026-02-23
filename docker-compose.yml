@@ -1,11 +1,15 @@
 services:
   caddy:
-    image: caddy:2-alpine
+    build:
+      context: .
+      dockerfile: Dockerfile.caddy
     restart: unless-stopped
     ports:
       - "80:80"
       - "443:443"
       - "443:443/udp" # HTTP/3
+    environment:
+      HETZNER_DNS_API_TOKEN: ${HETZNER_DNS_API_TOKEN}
     volumes:
       - ./Caddyfile:/etc/caddy/Caddyfile:ro
       - caddy_data:/data
@@ -35,6 +39,7 @@ services:
       COMICVINE_API_KEY: ${COMICVINE_API_KEY:-}
     volumes:
       - library_data:/data
+      - ./data:/data
     depends_on:
       - redis
     healthcheck:

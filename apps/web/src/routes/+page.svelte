@@ -37,12 +37,15 @@
 		{:else}
 			<div class="mt-8 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
 				{#each data.libraries as library}
-					<div class="rounded-lg border bg-card p-6 shadow-sm">
+					<a
+						href="/libraries/{library.id}"
+						class="block rounded-lg border bg-card p-6 shadow-sm transition-colors hover:bg-accent"
+					>
 						<h2 class="text-lg font-semibold">{library.name}</h2>
 						{#if library.description}
 							<p class="mt-1 text-sm text-muted-foreground">{library.description}</p>
 						{/if}
-					</div>
+					</a>
 				{/each}
 			</div>
 		{/if}

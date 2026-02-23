@@ -14,7 +14,7 @@
 </script>
 
 <svelte:head>
-	<title>Libraries — Admin</title>
+	<title>Libraries - Admin</title>
 </svelte:head>
 
 <div class="space-y-6">
@@ -107,7 +107,7 @@
 							<td class="px-4 py-3 font-medium">
 								<a href="/admin/libraries/{lib.id}" class="hover:underline">{lib.name}</a>
 							</td>
-							<td class="px-4 py-3 text-muted-foreground">{lib.description ?? "—"}</td>
+							<td class="px-4 py-3 text-muted-foreground">{lib.description ?? "-"}</td>
 							<td class="px-4 py-3 text-muted-foreground">{lib.user_count}</td>
 							<td class="px-4 py-3 text-muted-foreground">
 								{new Date(lib.created_at).toLocaleDateString()}

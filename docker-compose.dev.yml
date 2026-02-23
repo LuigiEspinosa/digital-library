@@ -1,6 +1,6 @@
 # Hot-reload development mode.
 #
-# NOT loaded automatically — must be specified explicitly:
+# NOT loaded automatically - must be specified explicitly:
 #   docker compose -f docker-compose.yml -f docker-compose.dev.yml up
 #
 # First time or after package.json / pnpm-lock.yaml changes, add --build:
@@ -15,9 +15,18 @@ services:
       context: .
       dockerfile: apps/api/Dockerfile.dev
     # tsx is in apps/api's devDependencies, so its bin link is at
-    # apps/api/node_modules/.bin/tsx — not the workspace root.
+    # apps/api/node_modules/.bin/tsx - not the workspace root.
     # `pnpm --filter ... exec` runs in the package's directory where tsx is found.
-    command: ["pnpm", "--filter", "@digital-library/api", "exec", "tsx", "watch", "src/index.ts"]
+    command:
+      [
+        "pnpm",
+        "--filter",
+        "@digital-library/api",
+        "exec",
+        "tsx",
+        "watch",
+        "src/index.ts",
+      ]
     volumes:
       - ./apps/api/src:/app/apps/api/src
     environment:
@@ -43,6 +52,7 @@ services:
     # Set both entrypoint and command explicitly to avoid ambiguity from
     # whatever the base image and docker-compose.yml leave as defaults.
     entrypoint: ["caddy"]
-    command: ["run", "--config", "/etc/caddy/Caddyfile.dev", "--adapter", "caddyfile"]
+    command:
+      ["run", "--config", "/etc/caddy/Caddyfile.dev", "--adapter", "caddyfile"]
     volumes:
       - ./Caddyfile.dev:/etc/caddy/Caddyfile.dev:ro

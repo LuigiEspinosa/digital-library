@@ -19,7 +19,7 @@ WORKDIR /app
 
 COPY packages/shared ./packages/shared
 
-# Copy web source — will be overridden by bind mounts at runtime.
+# Copy web source - will be overridden by bind mounts at runtime.
 COPY apps/web ./apps/web
 
 # `pnpm --filter` runs the dev script in the apps/web package context,

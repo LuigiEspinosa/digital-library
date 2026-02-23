@@ -35,7 +35,7 @@ export const authRoutes: FastifyPluginAsync = async (fastify) => {
       const user = await users.verifyPassword(email, password);
 
       if (!user) {
-        // Generic message — never reveal whether the email exists
+        // Generic message - never reveal whether the email exists
         return reply.code(401).send({
           statusCode: 401,
           error: 'Unauthorized',
