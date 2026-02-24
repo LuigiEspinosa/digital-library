@@ -6,7 +6,6 @@
 	import type { ActionData, PageData } from "./$types";
 	import { Button } from "$lib/components/ui/button";
 	import { Input } from "$lib/components/ui/input";
-	import { build } from "vite";
 
 	let { data, form }: { data: PageData; form: ActionData } = $props();
 
@@ -364,7 +363,7 @@
 				<p class="text-muted-foreground">
 					{hasActiveFilters
 						? "No books match the current filters."
-						: "Bo books yet. Upload one above."}
+						: "No books yet. Upload one above."}
 				</p>
 				{#if hasActiveFilters}
 					<button onclick={clearFilters} class="mt-2 text-sm text-primary hover:underline">
