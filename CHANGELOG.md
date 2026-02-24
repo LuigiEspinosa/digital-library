@@ -1,5 +1,18 @@
 # Changelog
 
+## [0.6.0] - Phase 6: Full-Text Search Enhancements
+
+### Added
+
+- **BM25 ranking**: `GET /api/libraries/:id/books?q=` now returns results ordered by relevance score instead of title. `BookRepository.findByLibrary` switches to a `JOIN books_fts.rowid = b.rowid ORDER BY books_fts.rank` path when `q` is present. The existing sort/order params are intentionally ignored on this path. BM25 always wins.
+- **Debounce**: search input fires navigation 350ms after the user stops typing, not on every keystroke. Pressing Enter cancels the pending timer and navigates immediately.
+- **Term highlighting**: matched search terms are highlighted in yellow on book card titles and authors in both grid and list views. Implemented with a two-pass approach: HTML entities are escaped first, then matches are wrapped in `<mark>` tags, so user input never reaches the DOM as raw HTML.
+- **Active filter chips**: a dismissible chip row appears whenever any filter is active. Each chip shows the filter value and has an X button that removes only that filter. A "Clear all" button at the end of the row replaces the previous standalone "Clear filters" link.
+
+### Changed
+
+- FTS query path refactored to a clean branch inside `findByLibrary`. Non-FTS path is identical to before.
+
 ## [0.5.0] - Phase 5: Library Browse UI
 
 ### Added

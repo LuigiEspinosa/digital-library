@@ -14,7 +14,7 @@ Self-hosted, privacy-first digital library that handles EPUB, PDF, CBZ/CBR comic
 
 ### Core features
 
-- Full-text search with FTS5 (porter stemmer, prefix matching) across title and author.
+- Full-text search with FTS5 MB25 ranking (porter stemmer, prefix matching) across title and author, with 350ms debounced input and per-term highlighting.
 - Filter by format, author, series, language, and tags with URL-driven state (bookmarkable, back-button-safe).
 - GSAP page transitions and card animations.
 - User auth with per-library ACL.
@@ -268,6 +268,27 @@ sequenceDiagram
     API-->>SvelteKit: { book }
     SvelteKit-->>Browser: Detail page (SSR)
     Browser-->>User: Cover slides in from left,<br/>metadata slides in from right
+```
+
+### Full-Text Search Flow
+
+```mermaid
+sequenceDiagram
+    actor User
+    participant Input as Search Input<br/>(350ms debounce)
+    participant SK as SvelteKit<br/>+page.server.ts
+    participant API as Fastify API<br/>BookRepository
+    participant FTS as SQLite FTS5<br/>books_fts
+
+    User->>Input: types "dune"
+    Note over Input: waits 350ms
+    Input->>SK: goto(?q=dune)
+    SK->>API: GET /libraries/:id/books?q=dune
+    Note over API: ftsActive = true
+    API->>FTS: JOIN books_fts WHERE books_fts MATCH 'dune*'
+    FTS-->>API: rows ordered by books_fts.rank (BM25)
+    API-->>SK: { data: [...], total: N }
+    SK-->>User: cards rendered with highlighted terms
 ```
 
 ---
