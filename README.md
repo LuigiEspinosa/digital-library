@@ -14,9 +14,11 @@ Self-hosted, privacy-first digital library that handles EPUB, PDF, CBZ/CBR comic
 
 ### Core features
 
-- Lightning-fast full-text search.
+- Full-text search with FTS5 (porter stemmer, prefix matching) across title and author.
+- Filter by format, author, series, language, and tags with URL-driven state (bookmarkable, back-button-safe).
+- GSAP page transitions and card animations.
 - User auth with per-library ACL.
-- Native EPUB / PDF / comic readers.
+- Native EPUB / PDF / Comic readers.
 - Rich metadata + auto-fetch.
 - Send to Kindle via SMTP.
 - Auto-import file watcher.
@@ -97,6 +99,44 @@ digital-library/
 | **Reader Strategy Pattern**    | A single `<Reader>` Svelte component dispatches to `<EpubReader>`, `<PdfReader>`, or `<ComicReader>` based on `book.format`. Each reader owns its own layout modes and settings.     |
 | **FTS5 Shadow Table**          | A virtual FTS5 table mirrors the books table. An SQLite trigger keeps it in sync on insert/update. Searches hit FTS5 for ranking then JOIN back to the main table for metadata.      |
 
+### Browse & Filter Flow
+
+```mermaid
+sequenceDiagram
+    actor User
+    participant Browser
+    participant SvelteKit as SvelteKit<br/>(+page.server.ts)
+    participant API as Fastify API
+    participant DB as SQLite + FTS5
+
+    User->>Browser: Applies filter (format, tag, search term)
+    Browser->>SvelteKit: GET /libraries/:id?format=epub&q=robots&tags=fiction
+    Note over SvelteKit: Parses URL params,<br/>builds URLSearchParams for API
+
+    par Parallel fetches
+        SvelteKit->>API: GET /api/libraries/:id/books?...
+        SvelteKit->>API: GET /api/libraries/:id/books/filters
+    end
+
+    API->>DB: SELECT with dynamic WHERE<br/>(format, FTS5 MATCH, json_each tags)
+    DB-->>API: Matching rows + COUNT(*)
+    API-->>SvelteKit: { data, total, limit, offset }
+
+    API->>DB: SELECT DISTINCT format, author, series...
+    DB-->>API: Filter option lists
+    API-->>SvelteKit: { formats, authors, series, tags, languages }
+
+    SvelteKit-->>Browser: SSR page with books + filter sidebar
+    Browser-->>User: Grid/list renders, GSAP staggers cards in
+
+    User->>Browser: Clicks to book detail
+    Browser->>SvelteKit: GET /libraries/:id/books/:bookId
+    SvelteKit->>API: GET /api/books/:bookId
+    API-->>SvelteKit: { book }
+    SvelteKit-->>Browser: Detail page (SSR)
+    Browser-->>User: Cover slides in from left,<br/>metadata slides in from right
+```
+
 ## One-Command Deploy
 
 ```bash
@@ -140,10 +180,10 @@ pnpm typecheck
 | 1   | Monorepo scaffold + Docker Compose           | ✅ Done        |
 | 2   | Auth system (auth, sessions, ACL)            | ✅ Done        |
 | 3   | Library management CRUD                      | ✅ Done        |
-| 4   | File import, deduplication, metadata extract | 🚧 In progress |
-| 5   | Library browse UI                            | 🔜             |
-| 6   | Full-text search (FTS5)                      | 🔜             |
-| 7   | EPUB reader                                  | 🔜             |
+| 4   | File import, deduplication, metadata extract | ✅ Done        |
+| 5   | Library browse UI                            | ✅ Done        |
+| 6   | Full-text search (FTS5)                      | ✅ Done        |
+| 7   | EPUB reader                                  | 🚧 In progress |
 | 8   | PDF reader                                   | 🔜             |
 | 9   | Comic/image reader                           | 🔜             |
 | 10  | Metadata enrichment (OpenLibrary, ComicVine) | 🔜             |

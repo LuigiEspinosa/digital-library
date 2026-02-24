@@ -57,6 +57,7 @@ export function runMigrations(db: Db): void {
       page_count      INTEGER,
       file_size       INTEGER,
       sha256          TEXT UNIQUE,
+      language        TEXT,
       created_at      TEXT DEFAULT (datetime('now'))
     );
 
@@ -102,4 +103,11 @@ export function runMigrations(db: Db): void {
       PRIMARY KEY (user_id, book_id)
     );
   `);
+
+  // Additive column migrations
+  try {
+    db.exec('ALTER TABLE books ADD COLUMN language TEXT');
+  } catch {
+    // already exists
+  }
 }

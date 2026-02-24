@@ -12,6 +12,7 @@ export interface ExtractedMetadata {
   isbn?: string;
   published_at?: string;
   page_count?: number;
+  language?: string;
   cover_data?: Buffer;
   cover_ext?: string;
 }

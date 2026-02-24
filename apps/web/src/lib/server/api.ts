@@ -1,4 +1,4 @@
-import type { Book, Library, User } from '@digital-library/shared';
+import type { Book, Library, LibraryFilters, User } from '@digital-library/shared';
 
 const API_URL = process.env.PUBLIC_API_URL ?? 'http://api:4000';
 
@@ -200,12 +200,51 @@ export async function getLibrary(cookie: string, id: string): Promise<Library | 
   }
 }
 
-export async function listLibraryBooks(cookie: string, libraryId: string): Promise<Book[]> {
+export async function listLibraryBooks(
+  cookie: string,
+  libraryId: string,
+  searchParams: URLSearchParams = new URLSearchParams()
+): Promise<{ books: Book[]; total: number; limit: number; offset: number }> {
   try {
-    const res = await fetch(`${API_URL}/api/libraries/${libraryId}/books`, { headers: { cookie } });
-    if (!res.ok) return [];
-    return (await res.json()).data ?? [];
+    const res = await fetch(
+      `${API_URL}/api/libraries/${libraryId}/books?${searchParams.toString()}`,
+      { headers: { cookie } }
+    );
+    if (!res.ok) return { books: [], total: 0, limit: 24, offset: 0 };
+    const body = await res.json();
+    return {
+      books: body.data ?? [],
+      total: body.total ?? 0,
+      limit: body.limit ?? 24,
+      offset: body.offset ?? 0,
+    };
   } catch {
-    return [];
+    return { books: [], total: 0, limit: 24, offset: 0 };
+  }
+}
+
+export async function getLibraryFilters(
+  cookie: string,
+  libraryId: string
+): Promise<LibraryFilters> {
+  const empty: LibraryFilters = { formats: [], authors: [], series: [], tags: [], languages: [] };
+  try {
+    const res = await fetch(`${API_URL}/api/libraries/${libraryId}/books/filters`, {
+      headers: { cookie },
+    });
+    if (!res.ok) return empty;
+    return await res.json();
+  } catch {
+    return empty;
+  }
+}
+
+export async function getBook(cookie: string, bookId: string): Promise<Book | null> {
+  try {
+    const res = await fetch(`${API_URL}/api/books/${bookId}`, { headers: { cookie } });
+    if (!res.ok) return null;
+    return (await res.json()).book ?? null;
+  } catch {
+    return null;
   }
 }

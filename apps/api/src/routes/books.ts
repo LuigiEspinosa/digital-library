@@ -6,13 +6,13 @@ import { pipeline } from "node:stream/promises";
 import type { FastifyPluginAsync } from "fastify";
 import { requireAuth } from "../middleware/auth.js";
 import { hasAccess, getAllowedLibraryIds } from "../acl.js";
-import { BookRepository } from "../db/repositories/BookRepository.js";
+import { type BookFilters, BookRepository } from "../db/repositories/BookRepository.js";
 import { importBook, detectFormat } from "../services/importBook.js";
 
 const TEMP_DIR = process.env.TEMP_PATH ?? os.tmpdir();
 
 export const bookRoutes: FastifyPluginAsync = async (fastify) => {
-  // All books across accessible libraries (pagianted)
+  // All books across accessible libraries (paginated)
   fastify.get('/books', { preHandler: requireAuth }, async (request, reply) => {
     const { limit = 50, offset = 0 } = request.query as { limit?: number; offset?: number };
     const allowedIds = getAllowedLibraryIds(fastify.db, request.user!.id, request.user!.is_admin);
@@ -32,17 +32,59 @@ export const bookRoutes: FastifyPluginAsync = async (fastify) => {
     reply.send({ book });
   });
 
-  // Books within a single library
-  fastify.get('/libraries/:libraryId/books', { preHandler: requireAuth }, async (request, reply) => {
+  // Filter options for a library's browse UI
+  fastify.get('/libraries/:libraryId/books/filters', { preHandler: requireAuth }, async (request, reply) => {
     const { libraryId } = request.params as { libraryId: string };
-    const { limit = 50, offset = 0 } = request.query as { limit?: number; offset?: number };
 
     if (!hasAccess(fastify.db, request.user!.id, libraryId, request.user!.is_admin)) {
       return reply.code(403).send({ statusCode: 403, error: 'Forbidden', message: 'Access denied.' });
     }
 
     const repo = new BookRepository(fastify.db);
-    const result = repo.findByLibrary(libraryId, { limit: Number(limit), offset: Number(offset) });
+    reply.send(repo.getFilters(libraryId));
+  });
+
+  // Books within a single library (with optional filters)
+  fastify.get('/libraries/:libraryId/books', { preHandler: requireAuth }, async (request, reply) => {
+    const { libraryId } = request.params as { libraryId: string };
+
+    if (!hasAccess(fastify.db, request.user!.id, libraryId, request.user!.is_admin)) {
+      return reply.code(403).send({ statusCode: 403, error: 'Forbidden', message: 'Access denied.' });
+    }
+
+    const query = request.query as {
+      limit?: string;
+      offset?: string;
+      q?: string;
+      format?: string;
+      author?: string;
+      series?: string;
+      tags?: string;
+      language?: string;
+      sort?: string;
+      order?: string;
+    }
+
+    const limit = Math.min(Number(query.limit ?? 24), 100);
+    const offset = Number(query.offset ?? 0);
+    const tags = query.tags ? query.tags.split(',').filter(Boolean) : undefined;
+
+    const repo = new BookRepository(fastify.db);
+    const result = repo.findByLibrary(
+      libraryId,
+      { limit, offset },
+      {
+        q: query.q,
+        format: query.format,
+        author: query.author,
+        series: query.series,
+        language: query.language,
+        tags,
+        sort: query.sort as BookFilters['sort'],
+        order: query.order as BookFilters['order'],
+      }
+    );
+
     reply.send({ data: result.books, total: result.total, limit, offset });
   });
 

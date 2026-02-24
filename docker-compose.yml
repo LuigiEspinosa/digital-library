@@ -58,6 +58,7 @@ services:
       NODE_ENV: ${NODE_ENV:-production}
       PUBLIC_API_URL: ${PUBLIC_API_URL:-http://api:4000}
       ORIGIN: ${ORIGIN:-https://library.cuatro.dev}
+      BODY_SIZE_LIMIT: ${MAX_UPLOAD_BYTES:-524288000}
     depends_on:
       - api
     healthcheck:
