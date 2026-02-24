@@ -1,22 +1,22 @@
 # HTTP → HTTPS redirect (no ACME challenge served here)
 :80 {
-  redir https://{host}{uri} 308
+	redir https://{host}{uri} 308
 }
 
 library.cuatro.dev {
-  tls {
-    # DNS-01 challenge via Hetzner DNS API.
-    # Bypasses HTTP/ALPN port issues entirely — proves ownership via TXT record.
-    dns hetzner {env.HETZNER_DNS_API_TOKEN}
-  }
+	tls {
+		# DNS-01 challenge via Hetzner DNS API.
+		# Bypasses HTTP/ALPN port issues entirely — proves ownership via TXT record.
+		dns hetzner {env.HETZNER_DNS_API_TOKEN}
+	}
 
-  handle /api/* {
-    reverse_proxy api:4000
-  }
-  handle /files/* {
-    reverse_proxy api:4000
-  }
-  handle {
-    reverse_proxy web:3000
-  }
+	handle /api/* {
+		reverse_proxy api:4000
+	}
+	handle /files/* {
+		reverse_proxy api:4000
+	}
+	handle {
+		reverse_proxy web:3000
+	}
 }
