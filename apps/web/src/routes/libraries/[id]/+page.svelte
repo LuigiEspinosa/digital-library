@@ -100,6 +100,23 @@
 		return pages;
 	}
 
+	function escapeHTML(s: string): string {
+		return s.replace(
+			/[&<>"'"]/g,
+			(c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" })[c] ?? c,
+		);
+	}
+
+	function highlight(text: string, term: string): string {
+		if (!term.trim()) return escapeHTML(text);
+		const safe = escapeHTML(text);
+		const pattern = term.trim().replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+		return safe.replace(
+			new RegExp(pattern, "gi"),
+			(m) => `<mark class="bg-yellow-200 dark:bg-yellow-800/60 rounded-sm">${m}</mark>`,
+		);
+	}
+
 	onMount(() => {
 		if (data.books.length > 0) {
 			gsap.from(".book-card", {
@@ -407,9 +424,13 @@
 								{/if}
 							</div>
 							<div class="p-3 space-y-1">
-								<p class="text-xs font-medium leading-tight line-clamp-2">{book.title}</p>
+								<p class="text-xs font-medium leading-tight line-clamp-2">
+									{@html highlight(book.title, data.filters.q ?? "")}
+								</p>
 								{#if book.author}
-									<p class="text-xs text-muted-foreground truncate">{book.author}</p>
+									<p class="text-xs text-muted-foreground truncate">
+										{@html highlight(book.author, data.filters.q ?? "")}
+									</p>
 								{/if}
 								<span
 									class="inline-flex items-center rounded-full px-2 py-0.5 text-[10px] font-medium {FORMAT_COLORS[
@@ -459,9 +480,13 @@
 								{/if}
 							</div>
 							<div class="min-w-0 flex-1">
-								<p class="text-sm font-medium leading-tight truncate">{book.title}</p>
+								<p class="text-sm font-medium leading-tight truncate">
+									{@html highlight(book.title, data.filters.q ?? "")}
+								</p>
 								{#if book.author}
-									<p class="text-xs text-muted-foreground truncate">{book.author}</p>
+									<p class="text-xs text-muted-foreground truncate">
+										{@html highlight(book.author, data.filters.q ?? "")}
+									</p>
 								{/if}
 								{#if book.series}
 									<p class="text-xs text-muted-foreground/70 truncate">
