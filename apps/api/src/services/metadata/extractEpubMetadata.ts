@@ -29,6 +29,7 @@ export async function extractEpubMetadata(filePath: string): Promise<ExtractedMe
   const author = extractXmlText(opfXml, 'dc:creator') ?? undefined;
   const description = extractXmlText(opfXml, 'dc:description') ?? undefined;
   const published_at = extractXmlText(opfXml, 'dc:date') ?? undefined;
+  const language = extractXmlText(opfXml, 'dc:language') ?? undefined;
 
   // ISBN: dc:identifier with scheme="ISBN"
   const isbnMath = opfXml.match(
@@ -75,5 +76,5 @@ export async function extractEpubMetadata(filePath: string): Promise<ExtractedMe
     }
   }
 
-  return { title, author, description, isbn, published_at, cover_data, cover_ext };
+  return { title, author, description, isbn, published_at, language, cover_data, cover_ext };
 }

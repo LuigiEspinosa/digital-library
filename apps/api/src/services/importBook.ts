@@ -119,6 +119,7 @@ export async function importBook(
     published_at: meta.published_at,
     page_count: meta.page_count,
     file_size: fileStats.size,
+    language: meta.language,
     sha256,
   });
 

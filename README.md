@@ -140,8 +140,8 @@ pnpm typecheck
 | 1   | Monorepo scaffold + Docker Compose           | ✅ Done        |
 | 2   | Auth system (auth, sessions, ACL)            | ✅ Done        |
 | 3   | Library management CRUD                      | ✅ Done        |
-| 4   | File import, deduplication, metadata extract | 🚧 In progress |
-| 5   | Library browse UI                            | 🔜             |
+| 4   | File import, deduplication, metadata extract | ✅ Done        |
+| 5   | Library browse UI                            | 🚧 In progress |
 | 6   | Full-text search (FTS5)                      | 🔜             |
 | 7   | EPUB reader                                  | 🔜             |
 | 8   | PDF reader                                   | 🔜             |

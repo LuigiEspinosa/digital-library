@@ -19,6 +19,7 @@ export interface Book {
   published_at?: string;
   page_count?: number;
   file_size?: number;
+  language?: string;
   created_at: string;
 }
 
@@ -64,6 +65,14 @@ export interface PaginatedResponse<T> {
   total: number;
   limit: number;
   offset: number;
+}
+
+export interface LibraryFilters {
+  formats: string[];
+  authors: string[];
+  series: string[];
+  tags: string[];
+  languages: string[];
 }
 
 // ---- Health ----

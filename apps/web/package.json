@@ -11,7 +11,8 @@
 		"test": "vitest run"
 	},
 	"dependencies": {
-		"@digital-library/shared": "workspace:*"
+		"@digital-library/shared": "workspace:*",
+		"gsap": "^3.14.2"
 	},
 	"devDependencies": {
 		"@internationalized/date": "^3.11.0",
