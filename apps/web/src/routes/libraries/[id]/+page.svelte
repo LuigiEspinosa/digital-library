@@ -16,6 +16,7 @@
 		cbr: "bg-orange-500/10 text-orange-700 dark:text-orange-400",
 	};
 
+	let debounceTimer: ReturnType<typeof setTimeout> | undefined;
 	let uploading = $state(false);
 	let showUpload = $state(false);
 	let fileInput = $state<HTMLInputElement | null>(null);
@@ -59,7 +60,14 @@
 	}
 
 	function submitSearch() {
+		clearTimeout(debounceTimer);
 		goto(buildUrl({ q: searchInput || undefined, page: 1 }), { keepFocus: true });
+	}
+
+	function onSearchInput(e: Event) {
+		searchInput = (e.target as HTMLInputElement).value;
+		clearTimeout(debounceTimer);
+		debounceTimer = setTimeout(submitSearch, 350);
 	}
 
 	function clearFilters() {
@@ -241,7 +249,7 @@
 						type="search"
 						placeholder="Search title, author, description..."
 						value={searchInput}
-						oninput={(e) => (searchInput = (e.target as HTMLInputElement).value)}
+						oninput={onSearchInput}
 						onkeydown={(e) => e.key === "Enter" && submitSearch()}
 						class="h-8 text-sm"
 					/>
