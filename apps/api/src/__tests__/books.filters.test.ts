@@ -3,6 +3,7 @@ import type { FastifyInstance } from 'fastify';
 import { build } from '../app.js';
 import { UserRepository } from '../db/repositories/UserRepository.js';
 import { BookRepository, type CreateBookInput } from '../db/repositories/BookRepository.js';
+import { text } from 'node:stream/consumers';
 
 function getDb(app: FastifyInstance): any {
   return (app as unknown as { db: ReturnType<typeof getDb> }).db;
@@ -346,6 +347,61 @@ describe('Book filter & browse', () => {
       });
 
       expect(res.statusCode).toBe(401);
+    });
+  });
+
+  describe('BM25 FTS combined filters', () => {
+    test('q + format returns only books matching both', async () => {
+      book({ title: 'Robots of Dawn', format: 'epub' });
+      book({ title: 'Robots and Empire', format: 'pdf' });
+      book({ title: 'History of Cooking', format: 'epub' });
+
+      const res = await app.inject({
+        method: 'GET',
+        url: `/api/libraries/${libraryId}/books?q=Robots&format=epub`,
+        headers: { cookie: adminCookie },
+      });
+
+      expect(res.statusCode).toBe(200);
+      const { data, total } = res.json();
+      expect(total).toBe(1);
+      expect(data[0].title).toBe('Robots of Dawn');
+      expect(data[0].format).toBe('epub');
+    });
+
+    test('q + tags applies AND semantics between term and tag', async () => {
+      book({ title: 'Robots and Science', tags: ['sci-fi'] });
+      book({ title: 'Robots and Fantasy', tags: ['fantasy'] });
+      book({ title: 'History of Cooking', tags: ['sci-fi'] });
+
+      const res = await app.inject({
+        method: 'GET',
+        url: `/api/libraries/${libraryId}/books?q=Robots&tags=sci-fi`,
+        headers: { cookie: adminCookie },
+      });
+
+      expect(res.statusCode).toBe(200);
+      const { data, total } = res.json();
+      expect(total).toBe(1);
+      expect(data[0].title).toBe('Robots and Science');
+    });
+
+    test('FTS total reflexts full match count independent of limit', async () => {
+      for (let i = 1; i <= 12; i++) {
+        book({ title: `Foundation ${i}` });
+      }
+      book({ title: 'Dune' });
+
+      const res = await app.inject({
+        method: 'GET',
+        url: `/api/libraries/${libraryId}/books?q=Foundation&limit=5`,
+        headers: { cookie: adminCookie },
+      });
+
+      expect(res.statusCode).toBe(200);
+      const { data, total } = res.json();
+      expect(total).toBe(12);
+      expect(data).toHaveLength(5);
     });
   });
 });
