@@ -19,7 +19,11 @@
 	let uploading = $state(false);
 	let showUpload = $state(false);
 	let fileInput = $state<HTMLInputElement | null>(null);
-	let searchInput = $state(data.filters.q ?? "");
+	let searchInput = $state("");
+
+	$effect(() => {
+		searchInput = data.filters.q ?? "";
+	});
 
 	function buildUrl(
 		updates: Record<string, string | number | string[] | undefined | null>,
