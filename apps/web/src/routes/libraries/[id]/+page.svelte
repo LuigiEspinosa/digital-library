@@ -328,15 +328,6 @@
 					<option value="created_at,desc">Newest first</option>
 					<option value="created_at,asc">Oldest first</option>
 				</select>
-
-				{#if hasActiveFilters}
-					<button
-						onclick={clearFilters}
-						class="text-xs text-muted-foreground underline-offset-2 hover:text-foreground hover:underline"
-					>
-						Clear filters
-					</button>
-				{/if}
 			</div>
 
 			<!-- Format chips -->
@@ -385,6 +376,67 @@
 				{/if}
 			</p>
 		</div>
+
+		{#snippet filterChip(label: string, onremove: () => void)}
+			<span
+				class="inline-flex items-center gap-1 rounded-full border bg-muted px-2.5 py-0.5 text-xs text-muted-foreground"
+			>
+				{label}
+				<button
+					onclick={onremove}
+					class="ml-0.5 leading-none opacity-60 hover:opacity-100"
+					aria-label="Remove filter"
+				>
+					<svg
+						xmlns="http://www.w3.org/2000/svg"
+						width="10"
+						height="10"
+						viewBox="0 0 24 24"
+						fill="none"
+						stroke="currentColor"
+						stroke-width="3"
+						stroke-linecap="round"
+						stroke-linejoin="round"
+					>
+						<line x1="18" y1="6" x2="6" y2="18" /><line x1="6" y1="6" x2="18" y2="18" />
+					</svg>
+				</button>
+			</span>
+		{/snippet}
+
+		{#if hasActiveFilters}
+			<div class="flex flex-wrap items-center gap-1.5">
+				{#if data.filters.q}
+					{@render filterChip(`"${data.filters.q}"`, () => {
+						searchInput = "";
+						setFilter("q", null);
+					})}
+				{/if}
+				{#if data.filters.format}
+					{@render filterChip(`Format: ${data.filters.format.toUpperCase()}`, () =>
+						setFilter("format", null),
+					)}
+				{/if}
+				{#if data.filters.author}
+					{@render filterChip(data.filters.author, () => setFilter("author", null))}
+				{/if}
+				{#if data.filters.series}
+					{@render filterChip(data.filters.series, () => setFilter("series", null))}
+				{/if}
+				{#if data.filters.language}
+					{@render filterChip(data.filters.language, () => setFilter("language", null))}
+				{/if}
+				{#each data.filters.tags ?? [] as tag}
+					{@render filterChip(tag, () => toggleTag(tag))}
+				{/each}
+				<button
+					onclick={clearFilters}
+					class="text-xs text-muted-foreground underline-offset-2 hover:text-foreground hover:underline"
+				>
+					Clear all
+				</button>
+			</div>
+		{/if}
 
 		<!-- Book grid -->
 		{#if data.books.length === 0}
