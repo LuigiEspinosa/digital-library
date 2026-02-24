@@ -16,6 +16,7 @@
 		cbr: "bg-orange-500/10 text-orange-700 dark:text-orange-400",
 	};
 
+	let debounceTimer: ReturnType<typeof setTimeout> | undefined;
 	let uploading = $state(false);
 	let showUpload = $state(false);
 	let fileInput = $state<HTMLInputElement | null>(null);
@@ -59,7 +60,14 @@
 	}
 
 	function submitSearch() {
+		clearTimeout(debounceTimer);
 		goto(buildUrl({ q: searchInput || undefined, page: 1 }), { keepFocus: true });
+	}
+
+	function onSearchInput(e: Event) {
+		searchInput = (e.target as HTMLInputElement).value;
+		clearTimeout(debounceTimer);
+		debounceTimer = setTimeout(submitSearch, 350);
 	}
 
 	function clearFilters() {
@@ -90,6 +98,23 @@
 		if (current < total - 2) pages.push("...");
 		pages.push(total);
 		return pages;
+	}
+
+	function escapeHTML(s: string): string {
+		return s.replace(
+			/[&<>"'"]/g,
+			(c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" })[c] ?? c,
+		);
+	}
+
+	function highlight(text: string, term: string): string {
+		if (!term.trim()) return escapeHTML(text);
+		const safe = escapeHTML(text);
+		const pattern = term.trim().replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+		return safe.replace(
+			new RegExp(pattern, "gi"),
+			(m) => `<mark class="bg-yellow-200 dark:bg-yellow-800/60 rounded-sm">${m}</mark>`,
+		);
 	}
 
 	onMount(() => {
@@ -241,7 +266,7 @@
 						type="search"
 						placeholder="Search title, author, description..."
 						value={searchInput}
-						oninput={(e) => (searchInput = (e.target as HTMLInputElement).value)}
+						oninput={onSearchInput}
 						onkeydown={(e) => e.key === "Enter" && submitSearch()}
 						class="h-8 text-sm"
 					/>
@@ -303,15 +328,6 @@
 					<option value="created_at,desc">Newest first</option>
 					<option value="created_at,asc">Oldest first</option>
 				</select>
-
-				{#if hasActiveFilters}
-					<button
-						onclick={clearFilters}
-						class="text-xs text-muted-foreground underline-offset-2 hover:text-foreground hover:underline"
-					>
-						Clear filters
-					</button>
-				{/if}
 			</div>
 
 			<!-- Format chips -->
@@ -361,6 +377,67 @@
 			</p>
 		</div>
 
+		{#snippet filterChip(label: string, onremove: () => void)}
+			<span
+				class="inline-flex items-center gap-1 rounded-full border bg-muted px-2.5 py-0.5 text-xs text-muted-foreground"
+			>
+				{label}
+				<button
+					onclick={onremove}
+					class="ml-0.5 leading-none opacity-60 hover:opacity-100"
+					aria-label="Remove filter"
+				>
+					<svg
+						xmlns="http://www.w3.org/2000/svg"
+						width="10"
+						height="10"
+						viewBox="0 0 24 24"
+						fill="none"
+						stroke="currentColor"
+						stroke-width="3"
+						stroke-linecap="round"
+						stroke-linejoin="round"
+					>
+						<line x1="18" y1="6" x2="6" y2="18" /><line x1="6" y1="6" x2="18" y2="18" />
+					</svg>
+				</button>
+			</span>
+		{/snippet}
+
+		{#if hasActiveFilters}
+			<div class="flex flex-wrap items-center gap-1.5">
+				{#if data.filters.q}
+					{@render filterChip(`"${data.filters.q}"`, () => {
+						searchInput = "";
+						setFilter("q", null);
+					})}
+				{/if}
+				{#if data.filters.format}
+					{@render filterChip(`Format: ${data.filters.format.toUpperCase()}`, () =>
+						setFilter("format", null),
+					)}
+				{/if}
+				{#if data.filters.author}
+					{@render filterChip(data.filters.author, () => setFilter("author", null))}
+				{/if}
+				{#if data.filters.series}
+					{@render filterChip(data.filters.series, () => setFilter("series", null))}
+				{/if}
+				{#if data.filters.language}
+					{@render filterChip(data.filters.language, () => setFilter("language", null))}
+				{/if}
+				{#each data.filters.tags ?? [] as tag}
+					{@render filterChip(tag, () => toggleTag(tag))}
+				{/each}
+				<button
+					onclick={clearFilters}
+					class="text-xs text-muted-foreground underline-offset-2 hover:text-foreground hover:underline"
+				>
+					Clear all
+				</button>
+			</div>
+		{/if}
+
 		<!-- Book grid -->
 		{#if data.books.length === 0}
 			<div class="py-24 text-center">
@@ -399,9 +476,13 @@
 								{/if}
 							</div>
 							<div class="p-3 space-y-1">
-								<p class="text-xs font-medium leading-tight line-clamp-2">{book.title}</p>
+								<p class="text-xs font-medium leading-tight line-clamp-2">
+									{@html highlight(book.title, data.filters.q ?? "")}
+								</p>
 								{#if book.author}
-									<p class="text-xs text-muted-foreground truncate">{book.author}</p>
+									<p class="text-xs text-muted-foreground truncate">
+										{@html highlight(book.author, data.filters.q ?? "")}
+									</p>
 								{/if}
 								<span
 									class="inline-flex items-center rounded-full px-2 py-0.5 text-[10px] font-medium {FORMAT_COLORS[
@@ -451,9 +532,13 @@
 								{/if}
 							</div>
 							<div class="min-w-0 flex-1">
-								<p class="text-sm font-medium leading-tight truncate">{book.title}</p>
+								<p class="text-sm font-medium leading-tight truncate">
+									{@html highlight(book.title, data.filters.q ?? "")}
+								</p>
 								{#if book.author}
-									<p class="text-xs text-muted-foreground truncate">{book.author}</p>
+									<p class="text-xs text-muted-foreground truncate">
+										{@html highlight(book.author, data.filters.q ?? "")}
+									</p>
 								{/if}
 								{#if book.series}
 									<p class="text-xs text-muted-foreground/70 truncate">

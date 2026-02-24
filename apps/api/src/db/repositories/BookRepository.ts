@@ -99,14 +99,11 @@ export class BookRepository {
     opts: { limit: number; offset: number },
     filters: BookFilters = {}
   ): { books: Book[]; total: number } {
+    const ftsActive = Boolean(filters.q?.trim());
+
     const conditions: string[] = ['b.library_id = ?'];
     const params: (string | number)[] = [libraryId];
 
-    if (filters.q) {
-      const ftsQuery = filters.q.trim().replace(/["'()*-]/g, '').trim() + '*';
-      conditions.push('b.rowid IN (SELECT rowid FROM books_fts WHERE books_fts MATCH ?)');
-      params.push(ftsQuery);
-    }
     if (filters.format) {
       conditions.push('b.format = ?');
       params.push(filters.format);
@@ -129,6 +126,23 @@ export class BookRepository {
         .join(' OR ');
       conditions.push(`(${tagClauses})`);
       params.push(...filters.tags);
+    }
+
+    if (ftsActive) {
+      const ftsQuery = filters.q!.trim().replace(/["'()*-]/g, '').trim() + '*';
+      // MATCH must be the first condition so FTS5 can use its index
+      const where = ['books_fts MATCH ?', ...conditions].join(' AND ');
+      const ftsParams: (string | number)[] = [ftsQuery, ...params];
+
+      const { count } = this.db
+        .prepare(`SELECT COUNT(*) as count FROM books b JOIN books_fts ON books_fts.rowid = b.rowid WHERE ${where}`)
+        .get(...ftsParams) as { count: number };
+
+      const rows = this.db
+        .prepare(`SELECT b.* FROM books b JOIN books_fts ON books_fts.rowid = b.rowid WHERE ${where} ORDER BY books_fts.rank LIMIT ? OFFSET ?`)
+        .all(...ftsParams, opts.limit, opts.offset) as DbBook[];
+
+      return { books: rows.map(toBook), total: count };
     }
 
     const where = conditions.join(' AND ');
