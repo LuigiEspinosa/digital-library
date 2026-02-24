@@ -45,6 +45,24 @@ Self-hosted, privacy-first digital library that handles EPUB, PDF, CBZ/CBR comic
 
 ## Architecture
 
+### CI/CD Pipeline
+
+```mermaid
+flowchart TD
+    Push[Push to branch] --> PR[Open Pull Request]
+    PR --> CI[GitHub Actions: CI job]
+    CI --> Test[pnpm test]
+    CI --> TC[pnpm typecheck]
+    Test & TC --> Gate{All pass?}
+    Gate -->|No| Blocked[Merge blocked]
+    Gate -->|Yes| Merge[Merge to main]
+    Merge --> Deploy[GitHub Actions: Deploy job]
+    Deploy --> SSH[SSH into Hetzner VPS]
+    SSH --> Pull[git pull origin main]
+    Pull --> Up[docker compose up -d --build]
+    Up --> Live[Live at library.cuatro.dev]
+```
+
 ### High-level Diagram
 
 ```mermaid
@@ -61,6 +79,57 @@ graph TB
     FastifyAPI -->SQLite
     FastifyAPI -->BooksData
     FastifyAPI -->Redis
+```
+
+### Database Schema
+
+```mermaid
+erDiagram
+    users {
+        text id PK
+        text email UK
+        text password_hash
+        boolean is_admin
+        text created_at
+    }
+    sessions {
+        text id PK
+        text user_id FK
+        text expires_at
+    }
+    libraries {
+        text id PK
+        text name
+        text description
+        text created_at
+    }
+    user_libraries {
+        text user_id FK
+        text library_id FK
+    }
+    books {
+        text id PK
+        text library_id FK
+        text title
+        text author
+        text format
+        text sha256 UK
+        text file_path UK
+        text language
+        text tags
+        text created_at
+    }
+    books_fts {
+        text title
+        text author
+        text description
+    }
+
+    users ||--o{ sessions : has
+    users ||--o{ user_libraries : accesses
+    libraries ||--o{ user_libraries : grants
+    libraries ||--o{ books : contains
+    books ||--|| books_fts : "synced by triggers"
 ```
 
 ### Repository Structure
@@ -99,6 +168,70 @@ digital-library/
 | **Reader Strategy Pattern**    | A single `<Reader>` Svelte component dispatches to `<EpubReader>`, `<PdfReader>`, or `<ComicReader>` based on `book.format`. Each reader owns its own layout modes and settings.     |
 | **FTS5 Shadow Table**          | A virtual FTS5 table mirrors the books table. An SQLite trigger keeps it in sync on insert/update. Searches hit FTS5 for ranking then JOIN back to the main table for metadata.      |
 
+### Auth & Session Flow
+
+```mermaid
+sequenceDiagram
+    actor User
+    participant Browser
+    participant SvelteKit
+    participant API as Fastify API
+    participant DB as SQLite
+
+    User->>Browser: Submit login form
+    Browser->>SvelteKit: POST /login (form action)
+    SvelteKit->>API: POST /api/auth/login
+    API->>DB: SELECT user WHERE email = ?
+    DB-->>API: User row + argon2 hash
+    API->>API: argon2.verify(hash, password)
+    API->>DB: INSERT INTO sessions
+    API-->>SvelteKit: Set-Cookie: session=id HttpOnly
+    SvelteKit-->>Browser: Redirect to /libraries
+
+    Note over Browser,API: Every subsequent request
+    Browser->>SvelteKit: GET /libraries (cookie attached)
+    SvelteKit->>API: GET /api/auth/me (cookie forwarded)
+    API->>DB: SELECT session JOIN user WHERE expires_at > now
+    DB-->>API: User row
+    API-->>SvelteKit: { user }
+    SvelteKit-->>Browser: SSR page with user context
+```
+
+### Book Import Pipeline
+
+```mermaid
+sequenceDiagram
+    actor Admin
+    participant API as Fastify API
+    participant Disk
+    participant DB as SQLite + FTS5
+    participant Queue as BullMQ
+
+    Admin->>API: POST /api/libraries/:id/books (multipart)
+    API->>Disk: Stream to TEMP_PATH (no buffering)
+    API->>API: detectFormat(filename)
+    API->>API: sha256(file)
+    API->>DB: SELECT WHERE sha256 = ? (dedup check)
+
+    alt Duplicate file
+        DB-->>API: Existing book row
+        API-->>Admin: 409 Conflict + existing book
+    else New file
+        API->>Disk: Move to /data/books/
+        API->>API: extractEpubMetadata() + cover blob
+        API->>Disk: Write cover to /data/covers/
+        API->>DB: INSERT INTO books
+        Note over DB: books_ai trigger fires
+        DB->>DB: INSERT INTO books_fts
+        API->>Queue: Enqueue metadata enrichment job
+        API-->>Admin: 201 Created + book
+    end
+
+    Note over Disk,DB: Auto-import via inbox watcher
+    Disk->>API: chokidar detects file in /data/inbox/
+    API->>DB: Same import pipeline as above
+```
+
 ### Browse & Filter Flow
 
 ```mermaid
@@ -136,6 +269,8 @@ sequenceDiagram
     SvelteKit-->>Browser: Detail page (SSR)
     Browser-->>User: Cover slides in from left,<br/>metadata slides in from right
 ```
+
+---
 
 ## One-Command Deploy
 
@@ -188,4 +323,4 @@ pnpm typecheck
 | 9   | Comic/image reader                           | 🔜             |
 | 10  | Metadata enrichment (OpenLibrary, ComicVine) | 🔜             |
 | 11  | Kindle send                                  | 🔜             |
-| 12  | Polish & deploy                              | 🔜             |
+| 12  | Polish & release                             | 🔜             |
