@@ -210,6 +210,25 @@ export class BookRepository {
     return { formats, authors, series, languages, tags };
   }
 
+  getProgress(userId: string, bookId: string): string | null {
+    const row = this.db
+      .prepare('SELECT position FROM reading_progress WHERE user_id =? AND book_id = ?')
+      .get(userId, bookId) as { position: string } | undefined;
+    return row?.position ?? null;
+  }
+
+  setProgress(userId: string, bookId: string, position: string): void {
+    this.db
+      .prepare(`
+        INSERT INTO reading_progress (user_id, book_id, position, updated_at)  
+        VALUES (?, ?, ?, datetime('now))
+        ON CONFLICT (user_id, book_id) DO UPDATE SET
+          position = excluded.position
+          updated_at = excluded.updated_at
+      `)
+      .run(userId, bookId, position);
+  }
+
   create(input: CreateBookInput): Book {
     const id = nanoid();
     this.db
