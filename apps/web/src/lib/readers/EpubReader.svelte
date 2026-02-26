@@ -17,8 +17,10 @@
 	let rendition = $state<Rendition | null>(null);
 	let loading = $state(true);
 	let error = $state<string | null>(null);
+	let themeFading = $state(false);
 
 	let currentCfi: string | null = null;
+	let _prevTheme: string = $userSettings.theme;
 
 	let saveTimer: ReturnType<typeof setTimeout> | null = null;
 	const SAVE_DEBOUNCE_MS = 2000;
@@ -121,13 +123,22 @@
 	});
 
 	// Re-applies every time rendition becomes available OR any setting changes.
-	// Runs twice on initial load (harmless - applying setyles is idempotent).
 	$effect(() => {
 		if (!rendition) return;
-		rendition.themes.select($userSettings.theme);
+
+		const theme = $userSettings.theme;
+		rendition.themes.select(theme);
 		rendition.themes.override("font-size", `${$userSettings.fontSize}px`);
 		rendition.themes.override("font-family", $userSettings.fontFamily);
 		rendition.themes.override("line-height", String($userSettings.lineHeight));
+
+		if (theme !== _prevTheme) {
+			_prevTheme = theme;
+			themeFading = true;
+			rendition.display(currentCfi ?? undefined).then(() => {
+				themeFading = false;
+			});
+		}
 	});
 
 	onDestroy(() => {
@@ -149,8 +160,8 @@
 	<!-- epub.js mounts into this container and creates its own iframe -->
 	<div
 		bind:this={container}
-		class="h-full w-full transition-opacity duration-300"
-		class:opacity-0={loading || !!error}
+		class="h-full w-full transition-opacity duration-100"
+		class:opacity-0={loading || !!error || themeFading}
 	></div>
 
 	<!-- Invisible click zones sit as siblings, absolutely positioned over the side margins.
