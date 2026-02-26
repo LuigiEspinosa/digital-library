@@ -194,8 +194,8 @@ pnpm typecheck
 | 5   | Library browse UI                            | ✅ Done        |
 | 6   | Full-text search (FTS5)                      | ✅ Done        |
 | 7   | EPUB reader                                  | ✅ Done        |
-| 8   | PDF reader                                   | 🚧 In progress |
-| 9   | Comic/image reader                           | 🔜             |
+| 8   | PDF reader                                   | ✅ Done        |
+| 9   | Comic/image reader                           | 🚧 In progress |
 | 10  | Metadata enrichment (OpenLibrary, ComicVine) | 🔜             |
 | 11  | Kindle send                                  | 🔜             |
 | 12  | Polish & release                             | 🔜             |
