@@ -3,7 +3,7 @@ import type { Db } from "../connection.js";
 import type { Book, BookFormat, LibraryFilters } from "@digital-library/shared";
 
 interface DbBook {
-  id: String;
+  id: string;
   library_id: string;
   title: string;
   author: string | null;

@@ -17,8 +17,8 @@
 	let rendition = $state<Rendition | null>(null);
 	let loading = $state(true);
 	let error = $state<string | null>(null);
-	// Plain variable, not $state - only used internally, never rendered
-	let currentCfi: string | null = initialCfi;
+
+	let currentCfi: string | null = null;
 
 	let saveTimer: ReturnType<typeof setTimeout> | null = null;
 	const SAVE_DEBOUNCE_MS = 2000;
@@ -95,6 +95,7 @@
 			_rendition.themes.override("line-height", String($userSettings.lineHeight));
 
 			// Pass undefined (not null) so epub.js starts from the beginning when no CFI exists
+			currentCfi = initialCfi;
 			await _rendition.display(initialCfi ?? undefined);
 			loading = false;
 
