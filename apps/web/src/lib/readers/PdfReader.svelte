@@ -1,5 +1,5 @@
 <script lang="ts">
-	import { onMount, onDestroy } from "svelte";
+	import { onMount, onDestroy, tick } from "svelte";
 	import type { PDFDocumentProxy } from "pdfjs-dist";
 	import type { Book } from "@digital-library/shared";
 	import { readingPosition } from "$lib/stores/readingPosition";
@@ -24,7 +24,7 @@
 	let pdfjsLib: typeof import("pdfjs-dist") | null = null;
 
 	// UI state
-	let currentPage = $state(initialPage);
+	let currentPage = $state(1);
 	let totalPages = $state(0);
 	let loading = $state(true);
 	let error = $state<string | null>(null);
@@ -36,7 +36,7 @@
 	let currentScale = $state(1.0);
 
 	// Page input editing
-	let pageInput = $state(String(initialPage));
+	let pageInput = $state("1");
 	let editingPage = $state(false);
 
 	// Progress debounce
@@ -196,7 +196,11 @@
 			currentPage = clampPage(initialPage, doc.numPages);
 
 			loading = false;
+			await tick(); // let Svelte commit the DOM Update
 
+			await renderPage(currentPage);
+
+			// Set up ResizeObserver only after the first render so it never races with it
 			// Watch container size for fit-width / fit-page recalculation
 			if (containerEl) {
 				resizeObserver = new ResizeObserver(() => {
@@ -204,8 +208,6 @@
 				});
 				resizeObserver.observe(containerEl);
 			}
-
-			await renderPage(currentPage);
 		} catch (err) {
 			error = err instanceof Error ? err.message : "Failed to load PDF.";
 			loading = false;
