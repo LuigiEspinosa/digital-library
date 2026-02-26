@@ -220,10 +220,10 @@ export class BookRepository {
   setProgress(userId: string, bookId: string, position: string): void {
     this.db
       .prepare(`
-        INSERT INTO reading_progress (user_id, book_id, position, updated_at)  
-        VALUES (?, ?, ?, datetime('now))
+        INSERT INTO reading_progress (user_id, book_id, position, updated_at)
+        VALUES (?, ?, ?, datetime('now'))
         ON CONFLICT (user_id, book_id) DO UPDATE SET
-          position = excluded.position
+          position = excluded.position,
           updated_at = excluded.updated_at
       `)
       .run(userId, bookId, position);

@@ -1,5 +1,5 @@
-import { createWriteStream } from "node:fs";
-import { mkdir, unlink } from "node:fs/promises";
+import { createReadStream, createWriteStream } from "node:fs";
+import { access, mkdir, unlink } from "node:fs/promises";
 import path from "node:path";
 import os from 'node:os';
 import { pipeline } from "node:stream/promises";
@@ -143,5 +143,67 @@ export const bookRoutes: FastifyPluginAsync = async (fastify) => {
     await unlink(book.file_path).catch(() => { });
     if (book.cover_path) await unlink(book.cover_path).catch(() => { });
     reply.code(204).send();
+  });
+
+  // Stream the raw book file to the browser (epub.js fetches it client-side)
+  fastify.get('/books/:id/file', { preHandler: requireAuth }, async (request, reply) => {
+    const { id } = request.params as { id: string };
+    const repo = new BookRepository(fastify.db);
+    const book = repo.findById(id);
+    if (!book) return reply.code(404).send({ statusCode: 404, error: 'Not Found', message: 'Book not found.' });
+    if (!hasAccess(fastify.db, request.user!.id, book.library_id, request.user!.is_admin)) {
+      return reply.code(403).send({ statusCode: 403, error: 'Forbidden', message: 'Access denied.' });
+    }
+
+    try {
+      await access(book.file_path);
+    } catch {
+      return reply.code(404).send({ statusCode: 404, eror: 'Not Found', message: 'File not found on disk.' });
+    }
+
+    const mimeTypes: Record<string, string> = {
+      epub: 'application/epub+zip',
+      pdf: 'application/pdf',
+      cbz: 'application/zip',
+      cbr: 'application/x-rar-copmressed',
+    };
+
+    reply.header('Content-Type', mimeTypes[book.format] ?? 'application/octet-stream');
+    reply.header('Cache-Control', 'private, max-age=3600');
+    return reply.send(createReadStream(book.file_path));
+  });
+
+  // Get reading progress for the current user
+  fastify.get('/books/:id/progress', { preHandler: requireAuth }, async (request, reply) => {
+    const { id } = request.params as { id: string };
+    const repo = new BookRepository(fastify.db);
+    const book = repo.findById(id);
+    if (!book) return reply.code(404).send({ statusCode: 404, error: 'Not Found', message: 'Book not found.' });
+    if (!hasAccess(fastify.db, request.user!.id, book.library_id, request.user!.is_admin)) {
+      return reply.code(403).send({ statusCode: 403, error: 'Forbidden', message: 'Access denied.' });
+    }
+
+    const position = repo.getProgress(request.user!.id, id);
+    return reply.send({ position });
+  });
+
+  // Upsert reading progress for the current user
+  fastify.put('/books/:id/progress', { preHandler: requireAuth }, async (request, reply) => {
+    const { id } = request.params as { id: string };
+    const { position } = request.body as { position?: string };
+
+    if (!position || typeof position !== 'string') {
+      return reply.code(400).send({ statusCode: 400, error: 'Bad Request', message: '`position` is required.' });
+    }
+
+    const repo = new BookRepository(fastify.db);
+    const book = repo.findById(id);
+    if (!book) return reply.code(404).send({ statusCode: 404, error: 'Not Found', message: 'Book not found.' });
+    if (!hasAccess(fastify.db, request.user!.id, book.library_id, request.user!.is_admin)) {
+      return reply.code(403).send({ statusCode: 403, error: 'Forbidden', message: 'Access denied.' });
+    }
+
+    repo.setProgress(request.user!.id, id, position);
+    return reply.code(204).send();
   });
 };
