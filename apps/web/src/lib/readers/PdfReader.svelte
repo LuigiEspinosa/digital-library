@@ -4,7 +4,6 @@
 	import type { Book } from "@digital-library/shared";
 	import { readingPosition } from "$lib/stores/readingPosition";
 	import { clampPage, computeScale, zoomOutStep, zoomInStep, type FitMode } from "./pdfUtils";
-	import pdfjsWorkerUrl from "pdfjs-dist/build/pdf.worker.min.mjs?url";
 
 	interface Props {
 		book: Book;
@@ -56,6 +55,7 @@
 	}
 
 	function flushSave() {
+		if (!pdfDoc) return; // pdfDoc is null during SSR and on mount failure - nothing to save
 		if (saveTimer) {
 			clearTimeout(saveTimer);
 			saveTimer = null;
@@ -186,8 +186,12 @@
 	// ---- Lifecycle ----
 	onMount(async () => {
 		try {
-			const pdfjs = await import("pdfjs-dist");
-			pdfjs.GlobalWorkerOptions.workerSrc = pdfjsWorkerUrl;
+			const [pdfjs, { default: workerUrl }] = await Promise.all([
+				import("pdfjs-dist"),
+				import("pdfjs-dist/build/pdf.worker.min.mjs?url"),
+			]);
+
+			pdfjs.GlobalWorkerOptions.workerSrc = workerUrl;
 			pdfjsLib = pdfjs;
 
 			const res = await fetch(`/api/books/${book.id}/file`, {
