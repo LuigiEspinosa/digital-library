@@ -193,8 +193,8 @@ pnpm typecheck
 | 4   | File import, deduplication, metadata extract | ✅ Done        |
 | 5   | Library browse UI                            | ✅ Done        |
 | 6   | Full-text search (FTS5)                      | ✅ Done        |
-| 7   | EPUB reader                                  | 🚧 In progress |
-| 8   | PDF reader                                   | 🔜             |
+| 7   | EPUB reader                                  | ✅ Done        |
+| 8   | PDF reader                                   | 🚧 In progress |
 | 9   | Comic/image reader                           | 🔜             |
 | 10  | Metadata enrichment (OpenLibrary, ComicVine) | 🔜             |
 | 11  | Kindle send                                  | 🔜             |
