@@ -41,7 +41,7 @@
 <div class="min-h-screen bg-stone-50">
 	<header class="border-b border-stone-200 bg-white px-6 py-4">
 		<nav class="flex items-center gap-2 text-sm text-stone-500">
-			<a href="/libraries" class="transition-colors hover:text-stone-800">Libraries</a>
+			<a href="/" class="transition-colors hover:text-stone-800">Libraries</a>
 			<span>/</span>
 			<a href="/libraries/{data.library.id}" class="transition-colors hover:text-stone-800">
 				{data.library.name}

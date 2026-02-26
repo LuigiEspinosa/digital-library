@@ -1,7 +1,4 @@
 import { describe, test, expect, beforeEach, afterEach } from 'vitest';
-import { mkdtemp, rm } from 'node:fs/promises';
-import path from 'node:path';
-import os from 'node:os';
 import type { FastifyInstance } from 'fastify';
 import { build } from '../app.js';
 import { UserRepository } from '../db/repositories/UserRepository.js';
@@ -10,33 +7,14 @@ function getDb(app: FastifyInstance) {
   return (app as any).db;
 }
 
-function makeMultipartBody(filename: string, content: Buffer) {
-  const boundary = 'TestBoundary' + Date.now();
-  const CRLF = '\r\n';
-  const body = Buffer.concat([
-    Buffer.from(`--${boundary}${CRLF}Content-Disposition: form-data; name="file";
-  filename="${filename}"${CRLF}Content-Type: application/octet-stream${CRLF}${CRLF}`),
-    content,
-    Buffer.from(`${CRLF}--${boundary}--${CRLF}`),
-  ]);
-  return { body, contentType: `multipart/form-data; boundary=${boundary}` };
-}
-
 describe('Reading progress routes', () => {
   let app: FastifyInstance;
   let adminCookie: string;
   let userCookie: string;
   let libraryId: string;
   let bookId: string;
-  let tmpBooks: string;
-  let tmpCovers: string;
 
   beforeEach(async () => {
-    tmpBooks = await mkdtemp(path.join(os.tmpdir(), 'dl-progress-books-'));
-    tmpCovers = await mkdtemp(path.join(os.tmpdir(), 'dl-progress-covers-'));
-    process.env.BOOKS_PATH = tmpBooks;
-    process.env.COVERS_PATH = tmpCovers;
-
     app = await build({ db: ':memory:', logger: false });
     const users = new UserRepository(getDb(app));
     await users.create({ email: 'admin@test.com', password: 'adminpass', is_admin: true });
@@ -44,7 +22,17 @@ describe('Reading progress routes', () => {
 
     const { nanoid } = await import('nanoid');
     libraryId = nanoid();
-    getDb(app).prepare('INSERT INTO libraries (id, name) VALUES (?, ?)').run(libraryId, 'Test Library');
+    bookId = nanoid();
+
+    getDb(app)
+      .prepare('INSERT INTO libraries (id, name) VALUES (?, ?)')
+      .run(libraryId, 'Test Library');
+
+    // Insert a minimal book row directly - progress routes only need it to exist
+    getDb(app)
+      .prepare(`INSERT INTO books (id, library_id, title, format, file_path, sha256, created_at)
+                  VALUES (?, ?, ?, ?, ?, ?, datetime('now'))`)
+      .run(bookId, libraryId, 'Test Book', 'epub', '/data/books/test.epub', nanoid());
 
     const adminLogin = await app.inject({
       method: 'POST', url: '/api/auth/login',
@@ -57,23 +45,9 @@ describe('Reading progress routes', () => {
       payload: { email: 'user@test.com', password: 'userpass' },
     });
     userCookie = userLogin.headers['set-cookie'] as string;
-
-    const { body, contentType } = makeMultipartBody('test.epub', Buffer.from('epub bytes'));
-    const uploadRes = await app.inject({
-      method: 'POST', url: `/api/libraries/${libraryId}/books`,
-      headers: { cookie: adminCookie, 'content-type': contentType },
-      body,
-    });
-    bookId = uploadRes.json().book.id;
   });
 
-  afterEach(async () => {
-    await app.close();
-    await rm(tmpBooks, { recursive: true, force: true });
-    await rm(tmpCovers, { recursive: true, force: true });
-    delete process.env.BOOKS_PATH;
-    delete process.env.COVERS_PATH;
-  });
+  afterEach(() => app.close());
 
   // ---- GET /books/:id/progress ----
 
