@@ -4,7 +4,6 @@
 	import type { Book } from "@digital-library/shared";
 	import { userSettings } from "$lib/stores/userSettings";
 	import { readingPosition } from "$lib/stores/readingPosition";
-	import { _ } from "$env/static/private";
 
 	interface Props {
 		book: Book;
@@ -18,7 +17,8 @@
 	let rendition = $state<Rendition | null>(null);
 	let loading = $state(true);
 	let error = $state<string | null>(null);
-	let currentCfi = $state<string | null>(initialCfi);
+	// Plain variable, not $state - only used internally, never rendered
+	let currentCfi: string | null = initialCfi;
 
 	let saveTimer: ReturnType<typeof setTimeout> | null = null;
 	const SAVE_DEBOUNCE_MS = 2000;
@@ -35,6 +35,14 @@
 			"a:visited": { color: "#7c3aed !important" },
 		},
 		sepia: {
+			"body, html": {
+				"background-color": "#f4ecd8 !important",
+				color: "#3c2f2f !important",
+			},
+			a: { color: "#7c4f28 !important" },
+			"a:visited": { color: "#5c3010 !important" },
+		},
+		dark: {
 			"body, html": {
 				"background-color": "#1c1c1e !important",
 				color: "#e0d7c8 !important",
@@ -80,7 +88,7 @@
 			// Register all themes once. Select and overrides happen in the $effect below
 			_rendition.themes.register("light", THEMES.light);
 			_rendition.themes.register("sepia", THEMES.sepia);
-			_rendition.themes.register("dark", THEMES.light);
+			_rendition.themes.register("dark", THEMES.dark);
 			_rendition.themes.select($userSettings.theme);
 			_rendition.themes.override("font-size", `${$userSettings.fontSize}px`);
 			_rendition.themes.override("font-family", $userSettings.fontFamily);
@@ -142,34 +150,34 @@
 		bind:this={container}
 		class="h-full w-full transition-opacity duration-300"
 		class:opacity-0={loading || !!error}
-	>
-		<!-- Invisible click zones: left 15% = prev page, right 15% = next page.
-    epub.js reanders EPUB content in the center; these zones cover the side margins. -->
-		{#if rendition}
-			<button
-				class="absolute inset-y-0 left-0 w-[15%] cursor-w-resize focus:outline-none"
-				aria-label="Previous page"
-				onclick={() => rendition?.prev()}
-			></button>
-			<button
-				class="absolute inset-y-0 right-0 w-[15%] cursor-e-resize focus:outline-none"
-				aria-label="Next page"
-				onclick={() => rendition?.next()}
-			></button>
-		{/if}
+	></div>
 
-		{#if loading}
-			<div class="absolute inset-0 flex items-center justify-center">
-				<div
-					class="h-8 w-8 animate-spin rounded-full border-2 border-current border-t-transparent opacity-30"
-				></div>
-			</div>
-		{/if}
+	<!-- Invisible click zones sit as siblings, absolutely positioned over the side margins.
+	epub.js renders EPUB content in the center; the outer 15% on each side stays empty. -->
+	{#if rendition}
+		<button
+			class="absolute inset-y-0 left-0 w-[15%] cursor-w-resize focus:outline-none"
+			aria-label="Previous page"
+			onclick={() => rendition?.prev()}
+		></button>
+		<button
+			class="absolute inset-y-0 right-0 w-[15%] cursor-e-resize focus:outline-none"
+			aria-label="Next page"
+			onclick={() => rendition?.next()}
+		></button>
+	{/if}
 
-		{#if error}
-			<div class="absolute inset-0 flex items-center justify-center px-8 text-center">
-				<p class="text-sm opacity-60">{error}</p>
-			</div>
-		{/if}
-	</div>
+	{#if loading}
+		<div class="absolute inset-0 flex items-center justify-center">
+			<div
+				class="h-8 w-8 animate-spin rounded-full border-2 border-current border-t-transparent opacity-30"
+			></div>
+		</div>
+	{/if}
+
+	{#if error}
+		<div class="absolute inset-0 flex items-center justify-center px-8 text-center">
+			<p class="text-sm opacity-60">{error}</p>
+		</div>
+	{/if}
 </div>
