@@ -1,6 +1,8 @@
 <script lang="ts">
 	import type { Book } from "@digital-library/shared";
 	import EpubReader from "./EpubReader.svelte";
+	import PdfReader from "./PdfReader.svelte";
+	import { parseStoredPage } from "./pdfUtils";
 
 	interface Props {
 		book: Book;
@@ -14,9 +16,7 @@
 {#if book.format === "epub"}
 	<EpubReader {book} {initialCfi} {onProgress} />
 {:else if book.format === "pdf"}
-	<div class="flex h-full items-center justify-center">
-		<p class="text-sm opacity-50">PDF reader - Coming soon!</p>
-	</div>
+	<PdfReader {book} initialPage={parseStoredPage(initialCfi)} {onProgress} />
 {:else if book.format === "cbz" || book.format === "cbr"}
 	<div class="flex h-full items-center justify-center">
 		<p class="text-sm opacity-50">Comic Reader - Coming soon!</p>

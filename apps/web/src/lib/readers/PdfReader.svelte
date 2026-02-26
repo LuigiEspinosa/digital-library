@@ -3,15 +3,7 @@
 	import type { PDFDocumentProxy } from "pdfjs-dist";
 	import type { Book } from "@digital-library/shared";
 	import { readingPosition } from "$lib/stores/readingPosition";
-	import {
-		clampPage,
-		computeScale,
-		zoomOutStep,
-		zoomInStep,
-		parseStoredPage,
-		ZOOM_STEPS,
-		type FitMode,
-	} from "./pdfUtils";
+	import { clampPage, computeScale, zoomOutStep, zoomInStep, type FitMode } from "./pdfUtils";
 	import pdfjsWorkerUrl from "pdfjs-dist/build/pdf.worker.min.mjs?url";
 
 	interface Props {
