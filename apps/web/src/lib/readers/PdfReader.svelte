@@ -157,10 +157,11 @@
 	}
 
 	function zoomOut() {
-		const next = zoomOutStep(currentPage);
+		const next = zoomOutStep(currentScale);
 		if (next === null) return;
 		fitMode = "custom";
 		customScale = next;
+		currentScale = next;
 		renderPage(currentPage);
 	}
 
@@ -169,6 +170,7 @@
 		if (next === null) return;
 		fitMode = "custom";
 		customScale = next;
+		currentScale = next;
 		renderPage(currentPage);
 	}
 
