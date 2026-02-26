@@ -96,6 +96,9 @@ importers:
       gsap:
         specifier: ^3.14.2
         version: 3.14.2
+      pdfjs-dist:
+        specifier: ^4.10.38
+        version: 4.10.38
     devDependencies:
       '@internationalized/date':
         specifier: ^3.11.0

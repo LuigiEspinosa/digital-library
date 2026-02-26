@@ -14,7 +14,8 @@
 	"dependencies": {
 		"@digital-library/shared": "workspace:*",
 		"epubjs": "^0.3.93",
-		"gsap": "^3.14.2"
+		"gsap": "^3.14.2",
+		"pdfjs-dist": "^4.10.38"
 	},
 	"devDependencies": {
 		"@internationalized/date": "^3.11.0",
