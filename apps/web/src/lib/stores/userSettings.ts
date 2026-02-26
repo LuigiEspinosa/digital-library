@@ -12,6 +12,8 @@ export interface UserSettings {
   comicRtl: boolean;
 }
 
+const STORAGE_KEY = 'dl_reader_settings';
+
 const defaults: UserSettings = {
   theme: 'sepia',
   fontSize: 18,
@@ -21,13 +23,30 @@ const defaults: UserSettings = {
   comicRtl: false,
 }
 
+function loadSettings(): UserSettings {
+  if (typeof localStorage === 'undefined') return { ...defaults };
+  try {
+    const raw = localStorage.getItem(STORAGE_KEY);
+    if (!raw) return { ...defaults };
+    return { ...defaults, ...JSON.parse(raw) };
+  } catch {
+    return { ...defaults }
+  }
+}
+
 function createSettingsStore() {
-  const { subscribe, update } = writable<UserSettings>({ ...defaults });
+  const { subscribe, update } = writable<UserSettings>(loadSettings());
 
   return {
     subscribe,
     set<K extends keyof UserSettings>(key: K, value: UserSettings[K]) {
-      update((s) => ({ ...s, [key]: value }));
+      update((s) => {
+        const next = { ...s, [key]: value };
+        try {
+          localStorage.setItem(STORAGE_KEY, JSON.stringify(next));
+        } catch { /* Ignore storage quota errors */ }
+        return next;
+      });
     },
   };
 }
