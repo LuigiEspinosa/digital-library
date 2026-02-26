@@ -37,6 +37,7 @@
 
 	let bg = $derived(THEME_BG[$userSettings.theme]);
 	let fg = $derived(THEME_FG[$userSettings.theme]);
+	let isEpub = $derived(data.book.format === "epub");
 
 	function showHeader() {
 		headerVisible = true;
@@ -203,72 +204,74 @@
 				</div>
 			</div>
 
-			<!-- Font size -->
-			<div class="mb-6">
-				<p class="mb-2.5 text-xs uppercase tracking-widest opacity-50">Font size</p>
-				<div class="flex items-center gap-2">
-					<button
-						onclick={() => userSettings.set("fontSize", Math.max(12, $userSettings.fontSize - 2))}
-						class="flex h-9 w-9 items-center justify-center rounded-lg border text-xs font-medium opacity-60 transition-opacity hover:opacity-100"
-						style="border-color: color-mix(in srgb, currentColor 20%, transparent);"
-						aria-label="Decrease font size"
-					>
-						A-
-					</button>
-					<span class="flex-1 text-center text-sm opacity-60">{$userSettings.fontSize}px</span>
-					<button
-						onclick={() => userSettings.set("fontSize", Math.min(28, $userSettings.fontSize + 2))}
-						class="flex h-9 w-9 items-center justify-center rounded-lg border text-xs font-medium opacity-60 transition-opacity hover:opacity-100"
-						style="border-color: color-mix(in srgb, currentColor 20%, transparent);"
-						aria-label="Increase font size"
-					>
-						A+
-					</button>
-				</div>
-			</div>
-
-			<!-- Font family -->
-			<div class="mb-6">
-				<p class="mb-2.5 text-xs uppercase tracking-widest opacity-50">Font</p>
-				<div class="flex gap-2">
-					{#each FONT_OPTIONS as opt}
+			{#if isEpub}
+				<!-- Font size -->
+				<div class="mb-6">
+					<p class="mb-2.5 text-xs uppercase tracking-widest opacity-50">Font size</p>
+					<div class="flex items-center gap-2">
 						<button
-							onclick={() => userSettings.set("fontFamily", opt.value)}
-							class="flex-1 rounded-lg border py-2 text-xs transition-all"
-							style="
+							onclick={() => userSettings.set("fontSize", Math.max(12, $userSettings.fontSize - 2))}
+							class="flex h-9 w-9 items-center justify-center rounded-lg border text-xs font-medium opacity-60 transition-opacity hover:opacity-100"
+							style="border-color: color-mix(in srgb, currentColor 20%, transparent);"
+							aria-label="Decrease font size"
+						>
+							A-
+						</button>
+						<span class="flex-1 text-center text-sm opacity-60">{$userSettings.fontSize}px</span>
+						<button
+							onclick={() => userSettings.set("fontSize", Math.min(28, $userSettings.fontSize + 2))}
+							class="flex h-9 w-9 items-center justify-center rounded-lg border text-xs font-medium opacity-60 transition-opacity hover:opacity-100"
+							style="border-color: color-mix(in srgb, currentColor 20%, transparent);"
+							aria-label="Increase font size"
+						>
+							A+
+						</button>
+					</div>
+				</div>
+
+				<!-- Font family -->
+				<div class="mb-6">
+					<p class="mb-2.5 text-xs uppercase tracking-widest opacity-50">Font</p>
+					<div class="flex gap-2">
+						{#each FONT_OPTIONS as opt}
+							<button
+								onclick={() => userSettings.set("fontFamily", opt.value)}
+								class="flex-1 rounded-lg border py-2 text-xs transition-all"
+								style="
                 font-family: : {opt.value};
                 border-color: {$userSettings.fontFamily === opt.value
-								? fg
-								: 'color-mix(in srgb, currentColor 20%, transparent'};
+									? fg
+									: 'color-mix(in srgb, currentColor 20%, transparent'};
                 opacity: {$userSettings.fontFamily === opt.value ? 1 : 0.6};
               "
-						>
-							{opt.label}
-						</button>
-					{/each}
+							>
+								{opt.label}
+							</button>
+						{/each}
+					</div>
 				</div>
-			</div>
 
-			<!-- Line height -->
-			<div>
-				<p class="mb-2.5 text-xs uppercase tracking-widest opacity-50">Spacing</p>
-				<div class="flex gap-2">
-					{#each LINE_HEIGHT_OPTIONS as opt}
-						<button
-							onclick={() => userSettings.set("lineHeight", opt.value)}
-							class="flex-1 rounded-lg border py-2 text-xs transition-all"
-							style="
+				<!-- Line height -->
+				<div>
+					<p class="mb-2.5 text-xs uppercase tracking-widest opacity-50">Spacing</p>
+					<div class="flex gap-2">
+						{#each LINE_HEIGHT_OPTIONS as opt}
+							<button
+								onclick={() => userSettings.set("lineHeight", opt.value)}
+								class="flex-1 rounded-lg border py-2 text-xs transition-all"
+								style="
                 border-color: {$userSettings.lineHeight === opt.value
-								? fg
-								: 'color-mix(in srgb, currentColor 20%, transparent'};
+									? fg
+									: 'color-mix(in srgb, currentColor 20%, transparent'};
                 opacity: {$userSettings.lineHeight === opt.value ? 1 : 0.6};
               "
-						>
-							{opt.label}
-						</button>
-					{/each}
+							>
+								{opt.label}
+							</button>
+						{/each}
+					</div>
 				</div>
-			</div>
+			{/if}
 		</div>
 	</div>
 </div>

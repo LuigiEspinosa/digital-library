@@ -14,7 +14,8 @@
 	"dependencies": {
 		"@digital-library/shared": "workspace:*",
 		"epubjs": "^0.3.93",
-		"gsap": "^3.14.2"
+		"gsap": "^3.14.2",
+		"pdfjs-dist": "^4.10.38"
 	},
 	"devDependencies": {
 		"@internationalized/date": "^3.11.0",
@@ -26,6 +27,7 @@
 		"@testing-library/svelte": "^5.2.0",
 		"bits-ui": "^2.16.1",
 		"clsx": "^2.1.1",
+		"jsdom": "^28.1.0",
 		"lightningcss": "^1.31.1",
 		"svelte": "^5.0.0",
 		"svelte-check": "^3.8.0",

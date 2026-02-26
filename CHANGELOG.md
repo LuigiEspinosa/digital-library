@@ -1,5 +1,26 @@
 # Changelog
 
+## [0.8.0] - Phase 8: PDF Reader
+
+### Added
+
+- PDF reader powered by pdfjs-dist (client-side, no server canvas dependency).
+- Fit-to-width and fit-to-page modes with ResizeObserver-driven reflow on window resize.
+- Custom zoom stepping through five levels (50% / 75% / 100% / 125% / 150% / 200%).
+- Native text selection and copy via PDF.js TextLayer rendered above the canvas.
+- Page jump input: click the current page number, type a target page, press Enter.
+- Keyboard navigation (arrow keys) for PDF pages.
+- Reading progress stored as a page number string; restored on next open.
+- EPUB-only settings (font size, font family, line height) hidden for PDF format in the reader settings panel.
+- `pdfUtils.ts` with pure utility functions (`clampPage`, `computeScale`, `zoomOutStep`, `zoomInStep`, `parseStoredPage`) and 10 unit tests.
+
+### Fixed
+
+- PDF first-page render upside-down due to ResizeObserver racing with the initial `renderPage` call.
+- Zoom-out doing nothing or jumping to wrong level due to `currentPage` being passed to `zoomOutStep` instead of `currentScale`.
+- Fit-width and fit-page leaving scrollbars because the `p-6` canvas padding was not substracted from the measured container dimensions.
+- Page input `<input>` border invisible due to typo in Tailwind class.
+
 ## [0.7.0] - Phase 7: EPUB Reader
 
 ### Added
