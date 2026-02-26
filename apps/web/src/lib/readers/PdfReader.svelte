@@ -77,12 +77,16 @@
 			// Natural viewport at scale 1 gives us the page's instrinsic pixel size
 			const naturalVp = page.getViewport({ scale: 1 });
 
-			// Toolbar is 44px tall; substract it so fit-page fills visible area
-			const usableH = containerEl.clientHeight - 44;
+			// Toolbar is 44px tall; substract it so fit-page fills visible scroll area.
+			// p-6 (24px each side) is inside the scroll container, so we substract it form
+			// both axes to prevent the canvas to overflowing and triggering scrollbars.
+			const PADDING_H = 48; // 24px left + 24px right (p-6)
+			const PADDING_V = 48; // 24px top + 24px bottom (p-6)
+			const usableH = containerEl.clientHeight - 44 - PADDING_V;
 
 			const scale = computeScale(
 				fitMode,
-				containerEl.clientWidth,
+				containerEl.clientWidth - PADDING_H,
 				usableH,
 				naturalVp.width,
 				naturalVp.height,
@@ -282,7 +286,7 @@
 									editingPage = false;
 									pageInput = String(currentPage);
 								}}
-								class="w-10 rounded horder bg-transparent px-1 py-0.5 text-center text-xs"
+								class="w-10 rounded border bg-transparent px-1 py-0.5 text-center text-xs"
 								style="border-color: color-mix(in srgb, currentColor 35%, transparent);"
 							/>
 						{:else}
