@@ -45,93 +45,6 @@ Self-hosted, privacy-first digital library that handles EPUB, PDF, CBZ/CBR comic
 
 ## Architecture
 
-### CI/CD Pipeline
-
-```mermaid
-flowchart TD
-    Push[Push to branch] --> PR[Open Pull Request]
-    PR --> CI[GitHub Actions: CI job]
-    CI --> Test[pnpm test]
-    CI --> TC[pnpm typecheck]
-    Test & TC --> Gate{All pass?}
-    Gate -->|No| Blocked[Merge blocked]
-    Gate -->|Yes| Merge[Merge to main]
-    Merge --> Deploy[GitHub Actions: Deploy job]
-    Deploy --> SSH[SSH into Hetzner VPS]
-    SSH --> Pull[git pull origin main]
-    Pull --> Up[docker compose up -d --build]
-    Up --> Live[Live at library.cuatro.dev]
-```
-
-### High-level Diagram
-
-```mermaid
-graph TB
-    Caddy[Caddy<br/>Reverse Proxy + Auto HTTPS]
-    SvelteKit[SvelteKit]
-    FastifyAPI[Fastify API]
-    SQLite[SQLite + FTS5]
-    BooksData["/data/<br/>books/"]
-    Redis["Redis<br/>(jobs)"]
-
-    Caddy -->|Port 3000| SvelteKit
-    Caddy -->|Port 4000| FastifyAPI
-    FastifyAPI -->SQLite
-    FastifyAPI -->BooksData
-    FastifyAPI -->Redis
-```
-
-### Database Schema
-
-```mermaid
-erDiagram
-    users {
-        text id PK
-        text email UK
-        text password_hash
-        boolean is_admin
-        text created_at
-    }
-    sessions {
-        text id PK
-        text user_id FK
-        text expires_at
-    }
-    libraries {
-        text id PK
-        text name
-        text description
-        text created_at
-    }
-    user_libraries {
-        text user_id FK
-        text library_id FK
-    }
-    books {
-        text id PK
-        text library_id FK
-        text title
-        text author
-        text format
-        text sha256 UK
-        text file_path UK
-        text language
-        text tags
-        text created_at
-    }
-    books_fts {
-        text title
-        text author
-        text description
-    }
-
-    users ||--o{ sessions : has
-    users ||--o{ user_libraries : accesses
-    libraries ||--o{ user_libraries : grants
-    libraries ||--o{ books : contains
-    books ||--|| books_fts : "synced by triggers"
-```
-
 ### Repository Structure
 
 ```txt
@@ -232,65 +145,6 @@ sequenceDiagram
     API->>DB: Same import pipeline as above
 ```
 
-### Browse & Filter Flow
-
-```mermaid
-sequenceDiagram
-    actor User
-    participant Browser
-    participant SvelteKit as SvelteKit<br/>(+page.server.ts)
-    participant API as Fastify API
-    participant DB as SQLite + FTS5
-
-    User->>Browser: Applies filter (format, tag, search term)
-    Browser->>SvelteKit: GET /libraries/:id?format=epub&q=robots&tags=fiction
-    Note over SvelteKit: Parses URL params,<br/>builds URLSearchParams for API
-
-    par Parallel fetches
-        SvelteKit->>API: GET /api/libraries/:id/books?...
-        SvelteKit->>API: GET /api/libraries/:id/books/filters
-    end
-
-    API->>DB: SELECT with dynamic WHERE<br/>(format, FTS5 MATCH, json_each tags)
-    DB-->>API: Matching rows + COUNT(*)
-    API-->>SvelteKit: { data, total, limit, offset }
-
-    API->>DB: SELECT DISTINCT format, author, series...
-    DB-->>API: Filter option lists
-    API-->>SvelteKit: { formats, authors, series, tags, languages }
-
-    SvelteKit-->>Browser: SSR page with books + filter sidebar
-    Browser-->>User: Grid/list renders, GSAP staggers cards in
-
-    User->>Browser: Clicks to book detail
-    Browser->>SvelteKit: GET /libraries/:id/books/:bookId
-    SvelteKit->>API: GET /api/books/:bookId
-    API-->>SvelteKit: { book }
-    SvelteKit-->>Browser: Detail page (SSR)
-    Browser-->>User: Cover slides in from left,<br/>metadata slides in from right
-```
-
-### Full-Text Search Flow
-
-```mermaid
-sequenceDiagram
-    actor User
-    participant Input as Search Input<br/>(350ms debounce)
-    participant SK as SvelteKit<br/>+page.server.ts
-    participant API as Fastify API<br/>BookRepository
-    participant FTS as SQLite FTS5<br/>books_fts
-
-    User->>Input: types "dune"
-    Note over Input: waits 350ms
-    Input->>SK: goto(?q=dune)
-    SK->>API: GET /libraries/:id/books?q=dune
-    Note over API: ftsActive = true
-    API->>FTS: JOIN books_fts WHERE books_fts MATCH 'dune*'
-    FTS-->>API: rows ordered by books_fts.rank (BM25)
-    API-->>SK: { data: [...], total: N }
-    SK-->>User: cards rendered with highlighted terms
-```
-
 ---
 
 ## One-Command Deploy
@@ -339,8 +193,8 @@ pnpm typecheck
 | 4   | File import, deduplication, metadata extract | ✅ Done        |
 | 5   | Library browse UI                            | ✅ Done        |
 | 6   | Full-text search (FTS5)                      | ✅ Done        |
-| 7   | EPUB reader                                  | 🚧 In progress |
-| 8   | PDF reader                                   | 🔜             |
+| 7   | EPUB reader                                  | ✅ Done        |
+| 8   | PDF reader                                   | 🚧 In progress |
 | 9   | Comic/image reader                           | 🔜             |
 | 10  | Metadata enrichment (OpenLibrary, ComicVine) | 🔜             |
 | 11  | Kindle send                                  | 🔜             |

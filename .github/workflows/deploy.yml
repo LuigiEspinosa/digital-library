@@ -27,6 +27,10 @@ jobs:
           sudo apt-get install -y libcairo2-dev libpango1.0-dev libjpeg-dev libgif-dev librsvg2-dev
 
       - run: pnpm install --frozen-lockfile
+
+      - name: Sync SvelteKit
+        run: pnpm --filter @digital-library/web exec svelte-kit sync
+
       - run: pnpm test
       - run: pnpm typecheck
 

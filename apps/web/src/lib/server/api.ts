@@ -248,3 +248,13 @@ export async function getBook(cookie: string, bookId: string): Promise<Book | nu
     return null;
   }
 }
+
+export async function getProgress(cookie: string, bookId: string): Promise<string | null> {
+  try {
+    const res = await fetch(`${API_URL}/api/books/${bookId}/progress`, { headers: { cookie } });
+    if (!res.ok) return null;
+    return (await res.json()).position ?? null;
+  } catch {
+    return null;
+  }
+}

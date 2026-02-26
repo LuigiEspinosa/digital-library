@@ -3,7 +3,7 @@
 export type BookFormat = 'epub' | 'pdf' | 'cbz' | 'cbr' | 'images';
 
 export interface Book {
-  id: String;
+  id: string;
   library_id: string;
   title: string;
   author?: string;

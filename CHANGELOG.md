@@ -1,5 +1,28 @@
 # Changelog
 
+## [0.7.0] - Phase 7: EPUB Reader
+
+### Added
+
+- **EPUB reader**: full-screen reader powered by epub.js. Fetches the EPUB file via the authenticated `/api/books/:id/file` endpoint so cookies are forwarded (epub.js's internal XHR does not send credentials). Paginated layout, keyboard navigation (ArrowLeft/ArrowRight from both the outer page and the epub iframe), and invisible click zones on the left and right 15% margins for prev/next.
+- **Theme system**: three built-in themes (Light, Sepia, Dark) with per-theme CSS injected into the epub.js iframe using `!important` overrides to beat EPUB stylesheet specificity. Theme changes force `rendition.display()` with an opacity fade to prevent a bare flash of unstyled content.
+- **Reader settings panel**: slide-in panel (translates in from the right) with controls for theme, font size (A- / A+), font family (Serif, Sans-serif, Monospace), and line height (Tight 1.4 / Normal 1.6 / Relaxed 1.8). Settings persist across sessions in `localStorage`.
+- **Auto-hiding header**: header fades out after 3 seconds of inactivity and reappears on any mouse or touch event. The timer resets whenever the settings panel is open.
+- **Reading progress API**: `GET /api/books/:id/progress` returns the saved CFI position (or `null` when none exists). `PUT /api/books/:id/progress` upserts the position. Both routes enforce session auth and per-library ACL; progress rows are scoped per user so two readers of the same book each store their own position.
+- **Progress save with debounce**: position is written on every epub.js `relocated` event with a 2-second debounce. `onDestroy` flushes any pending save before component teardown so the last page is never lost on navigation.
+- **`readingPosition` Svelte store**: lightweight in-memory store that tracks the current CFI for optimistic UI updates without waiting for the API round-trip.
+- **`userSettings` Svelte store**: wraps theme, fontSize, fontFamily, and lineHeight. Reads initial state from `localStorage` and writes back on every `set(key, value)` call without touching sibling keys.
+- **`Reader` dispatcher component**: a single `<Reader book={...} />` component selects the correct reader implementation by `book.format`. PDF and Comic reader slots show a "coming soon" placeholder, ready for Phase 8/9.
+- **Reader route**: `GET /libraries/:id/books/:bookId/read` runs a parallel `Promise.all` in the server load function to fetch book metadata and the initial CFI before the page renders, so the reader starts at the saved position with no client-side loading jank.
+
+### Fixed
+
+- `Book.id` was typed as `String` (wrapper object) in `packages/shared/src/index.ts` and the internal `DbBook` interface in `BookRepository.ts`. Changed to the primitive `string` type, resolving a downstream TypeScript error in `EpubReader.svelte`.
+
+### Changed
+
+- `apps/web/vitest.config.ts` now includes a `resolve.alias` for `$lib` so web store unit tests can import from `$lib/stores/...` without the SvelteKit Vite plugin.
+
 ## [0.6.0] - Phase 6: Full-Text Search Enhancements
 
 ### Added
