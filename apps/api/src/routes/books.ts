@@ -1,13 +1,13 @@
-import { createReadStream, createWriteStream } from "node:fs";
-import { access, mkdir, unlink } from "node:fs/promises";
-import path from "node:path";
+import { createReadStream, createWriteStream } from 'node:fs';
+import { access, mkdir, unlink } from 'node:fs/promises';
+import path from 'node:path';
 import os from 'node:os';
-import { pipeline } from "node:stream/promises";
-import type { FastifyPluginAsync } from "fastify";
-import { requireAuth } from "../middleware/auth.js";
-import { hasAccess, getAllowedLibraryIds } from "../acl.js";
-import { type BookFilters, BookRepository } from "../db/repositories/BookRepository.js";
-import { importBook, detectFormat } from "../services/importBook.js";
+import { pipeline } from 'node:stream/promises';
+import type { FastifyPluginAsync } from 'fastify';
+import { requireAuth } from '../middleware/auth.js';
+import { hasAccess, getAllowedLibraryIds } from '../acl.js';
+import { type BookFilters, BookRepository } from '../db/repositories/BookRepository.js';
+import { importBook, detectFormat } from '../services/importBook.js';
 
 const TEMP_DIR = process.env.TEMP_PATH ?? os.tmpdir();
 
@@ -26,7 +26,7 @@ export const bookRoutes: FastifyPluginAsync = async (fastify) => {
     const repo = new BookRepository(fastify.db);
     const book = repo.findById(id);
     if (!book) return reply.code(404).send({ statusCode: 404, error: 'Not Found', message: 'Book not found. ' });
-    if ((!hasAccess(fastify.db, request.user!.id, book.library_id, request.user!.is_admin))) {
+    if (!hasAccess(fastify.db, request.user!.id, book.library_id, request.user!.is_admin)) {
       return reply.code(403).send({ statusCode: 403, error: 'Forbidden', message: 'Access denied.' });
     }
     reply.send({ book });
@@ -63,7 +63,7 @@ export const bookRoutes: FastifyPluginAsync = async (fastify) => {
       language?: string;
       sort?: string;
       order?: string;
-    }
+    };
 
     const limit = Math.min(Number(query.limit ?? 24), 100);
     const offset = Number(query.offset ?? 0);
@@ -82,7 +82,7 @@ export const bookRoutes: FastifyPluginAsync = async (fastify) => {
         tags,
         sort: query.sort as BookFilters['sort'],
         order: query.order as BookFilters['order'],
-      }
+      },
     );
 
     reply.send({ data: result.books, total: result.total, limit, offset });
@@ -102,7 +102,9 @@ export const bookRoutes: FastifyPluginAsync = async (fastify) => {
     const format = detectFormat(data.filename);
     if (!format) {
       await data.file.resume(); // drain the stream
-      return reply.code(415).send({ statusCode: 415, error: 'Unsupported Media Type', message: `${path.extname(data.filename)}` });
+      return reply
+        .code(415)
+        .send({ statusCode: 415, error: 'Unsupported Media Type', message: `${path.extname(data.filename)}` });
     }
 
     // Stream to temp file - Never buffer the whole file in memory
@@ -126,7 +128,7 @@ export const bookRoutes: FastifyPluginAsync = async (fastify) => {
       reply.code(201).send({ book: result.book });
     } catch (err) {
       // Clean up temp file on error (importBook moves it on success, so this only runs on failure)
-      await unlink(tmpPath).catch(() => { });
+      await unlink(tmpPath).catch(() => {});
       throw err;
     }
   });
@@ -140,8 +142,8 @@ export const bookRoutes: FastifyPluginAsync = async (fastify) => {
       return reply.code(403).send({ statusCode: 403, error: 'Forbidden', message: 'Admin only.' });
     }
     repo.delete(id);
-    await unlink(book.file_path).catch(() => { });
-    if (book.cover_path) await unlink(book.cover_path).catch(() => { });
+    await unlink(book.file_path).catch(() => {});
+    if (book.cover_path) await unlink(book.cover_path).catch(() => {});
     reply.code(204).send();
   });
 
@@ -158,7 +160,7 @@ export const bookRoutes: FastifyPluginAsync = async (fastify) => {
     try {
       await access(book.file_path);
     } catch {
-      return reply.code(404).send({ statusCode: 404, eror: 'Not Found', message: 'File not found on disk.' });
+      return reply.code(404).send({ statusCode: 404, error: 'Not Found', message: 'File not found on disk.' });
     }
 
     const mimeTypes: Record<string, string> = {
