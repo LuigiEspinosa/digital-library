@@ -1,6 +1,7 @@
-import { nanoid } from "nanoid";
-import type { Db } from "../connection.js";
-import type { Book, BookFormat, LibraryFilters } from "@digital-library/shared";
+import { nanoid } from 'nanoid';
+import type { Db } from '../connection.js';
+import type { Book, BookFormat, LibraryFilters } from '@digital-library/shared';
+import { sanitizeFtsQuery } from '../ftsSanitizer.js';
 
 interface DbBook {
   id: string;
@@ -78,12 +79,12 @@ export interface BookFilters {
 const VALID_SORT = ['title', 'author', 'created_at', 'published_at'] as const;
 
 export class BookRepository {
-  constructor(private db: Db) { }
+  constructor(private db: Db) {}
 
   findById(id: string): Book | null {
-    const row = this.db
-      .prepare('SELECT * FROM books WHERE id = ?')
-      .get(id) as DbBook | undefined;
+    const row = this.db.prepare('SELECT * FROM books WHERE id = ?').get(id) as
+      | DbBook
+      | undefined;
     return row ? toBook(row) : null;
   }
 
@@ -97,10 +98,8 @@ export class BookRepository {
   findByLibrary(
     libraryId: string,
     opts: { limit: number; offset: number },
-    filters: BookFilters = {}
+    filters: BookFilters = {},
   ): { books: Book[]; total: number } {
-    const ftsActive = Boolean(filters.q?.trim());
-
     const conditions: string[] = ['b.library_id = ?'];
     const params: (string | number)[] = [libraryId];
 
@@ -128,27 +127,35 @@ export class BookRepository {
       params.push(...filters.tags);
     }
 
-    if (ftsActive) {
-      const ftsQuery = filters.q!.trim().replace(/["'()*-]/g, '').trim() + '*';
+    const rawQ = filters.q?.trim() ?? '';
+    if (rawQ.length > 0) {
+      const ftsQuery = sanitizeFtsQuery(rawQ);
+      if (ftsQuery === null) return { books: [], total: 0 };
+
       // MATCH must be the first condition so FTS5 can use its index
       const where = ['books_fts MATCH ?', ...conditions].join(' AND ');
       const ftsParams: (string | number)[] = [ftsQuery, ...params];
 
       const { count } = this.db
-        .prepare(`SELECT COUNT(*) as count FROM books b JOIN books_fts ON books_fts.rowid = b.rowid WHERE ${where}`)
+        .prepare(
+          `SELECT COUNT(*) as count FROM books b JOIN books_fts ON books_fts.rowid = b.rowid WHERE ${where}`,
+        )
         .get(...ftsParams) as { count: number };
 
       const rows = this.db
-        .prepare(`SELECT b.* FROM books b JOIN books_fts ON books_fts.rowid = b.rowid WHERE ${where} ORDER BY books_fts.rank LIMIT ? OFFSET ?`)
+        .prepare(
+          `SELECT b.* FROM books b JOIN books_fts ON books_fts.rowid = b.rowid WHERE ${where} ORDER BY books_fts.rank LIMIT ? OFFSET ?`,
+        )
         .all(...ftsParams, opts.limit, opts.offset) as DbBook[];
 
       return { books: rows.map(toBook), total: count };
     }
 
     const where = conditions.join(' AND ');
-    const sortCol = filters.sort && (VALID_SORT as readonly string[]).includes(filters.sort)
-      ? filters.sort
-      : 'title';
+    const sortCol =
+      filters.sort && (VALID_SORT as readonly string[]).includes(filters.sort)
+        ? filters.sort
+        : 'title';
     const orderDir = filters.order === 'desc' ? 'DESC' : 'ASC';
 
     const { count } = this.db
@@ -156,7 +163,9 @@ export class BookRepository {
       .get(...params) as { count: number };
 
     const rows = this.db
-      .prepare(`SELECT b.* FROM books b WHERE ${where} ORDER BY b.${sortCol} ${orderDir} LIMIT ? OFFSET ?`)
+      .prepare(
+        `SELECT b.* FROM books b WHERE ${where} ORDER BY b.${sortCol} ${orderDir} LIMIT ? OFFSET ?`,
+      )
       .all(...params, opts.limit, opts.offset) as DbBook[];
 
     return { books: rows.map(toBook), total: count };
@@ -164,68 +173,96 @@ export class BookRepository {
 
   findAll(
     allowedLibraryIds: string[],
-    opts: { limit: number; offset: number }
+    opts: { limit: number; offset: number },
   ): { books: Book[]; total: number } {
     if (allowedLibraryIds.length === 0) return { books: [], total: 0 };
 
     const placeholders = allowedLibraryIds.map(() => '?').join(', ');
 
     const { count } = this.db
-      .prepare(`SELECT COUNT(*) as count FROM books WHERE library_id IN (${placeholders})`)
+      .prepare(
+        `SELECT COUNT(*) as count FROM books WHERE library_id IN (${placeholders})`,
+      )
       .get(...allowedLibraryIds) as { count: number };
 
     const rows = this.db
-      .prepare(`SELECT * FROM books WHERE library_id IN (${placeholders}) ORDER BY title ASC LIMIT ? OFFSET ?`)
+      .prepare(
+        `SELECT * FROM books WHERE library_id IN (${placeholders}) ORDER BY title ASC LIMIT ? OFFSET ?`,
+      )
       .all(...allowedLibraryIds, opts.limit, opts.offset) as DbBook[];
 
     return { books: rows.map(toBook), total: count };
   }
 
   getFilters(libraryId: string): LibraryFilters {
-    const formats = (this.db
-      .prepare('SELECT DISTINCT format FROM books WHERE library_id = ? ORDER by format')
-      .all(libraryId) as { format: string }[]).map(r => r.format);
+    const formats = (
+      this.db
+        .prepare(
+          'SELECT DISTINCT format FROM books WHERE library_id = ? ORDER by format',
+        )
+        .all(libraryId) as { format: string }[]
+    ).map((r) => r.format);
 
-    const authors = (this.db
-      .prepare('SELECT DISTINCT author FROM books WHERE library_id = ? AND author is NOT NULL ORDER by author')
-      .all(libraryId) as { author: string }[]).map(r => r.author);
+    const authors = (
+      this.db
+        .prepare(
+          'SELECT DISTINCT author FROM books WHERE library_id = ? AND author is NOT NULL ORDER by author',
+        )
+        .all(libraryId) as { author: string }[]
+    ).map((r) => r.author);
 
-    const series = (this.db
-      .prepare('SELECT DISTINCT series FROM books WHERE library_id = ? AND series is NOT NULL ORDER by series')
-      .all(libraryId) as { series: string }[]).map(r => r.series);
+    const series = (
+      this.db
+        .prepare(
+          'SELECT DISTINCT series FROM books WHERE library_id = ? AND series is NOT NULL ORDER by series',
+        )
+        .all(libraryId) as { series: string }[]
+    ).map((r) => r.series);
 
-    const languages = (this.db
-      .prepare('SELECT DISTINCT language FROM books WHERE library_id = ? AND language is NOT NULL ORDER by language')
-      .all(libraryId) as { language: string }[]).map(r => r.language);
+    const languages = (
+      this.db
+        .prepare(
+          'SELECT DISTINCT language FROM books WHERE library_id = ? AND language is NOT NULL ORDER by language',
+        )
+        .all(libraryId) as { language: string }[]
+    ).map((r) => r.language);
 
-    const tags = (this.db
-      .prepare(`
+    const tags = (
+      this.db
+        .prepare(
+          `
         SELECT DISTINCT value as tag
         FROM books, json_each(books.tags)
         WHERE library_id = ? AND tags IS NOT NULL
         ORDER BY value
-      `)
-      .all(libraryId) as { tag: string }[]).map(r => r.tag);
+      `,
+        )
+        .all(libraryId) as { tag: string }[]
+    ).map((r) => r.tag);
 
     return { formats, authors, series, languages, tags };
   }
 
   getProgress(userId: string, bookId: string): string | null {
     const row = this.db
-      .prepare('SELECT position FROM reading_progress WHERE user_id =? AND book_id = ?')
+      .prepare(
+        'SELECT position FROM reading_progress WHERE user_id =? AND book_id = ?',
+      )
       .get(userId, bookId) as { position: string } | undefined;
     return row?.position ?? null;
   }
 
   setProgress(userId: string, bookId: string, position: string): void {
     this.db
-      .prepare(`
+      .prepare(
+        `
         INSERT INTO reading_progress (user_id, book_id, position, updated_at)
         VALUES (?, ?, ?, datetime('now'))
         ON CONFLICT (user_id, book_id) DO UPDATE SET
           position = excluded.position,
           updated_at = excluded.updated_at
-      `)
+      `,
+      )
       .run(userId, bookId, position);
   }
 
@@ -237,7 +274,7 @@ export class BookRepository {
           id, library_id, title, author, format, file_path, cover_path,
           description, series, series_idx, tags, isbn, published_at,
           page_count, file_size, sha256, language
-        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
+        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
       )
       .run(
         id,
