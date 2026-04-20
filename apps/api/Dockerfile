@@ -6,7 +6,7 @@ ENV PATH="$PNPM_HOME:$PATH"
 RUN corepack enable
 
 RUN apt-get update && apt-get install -y --no-install-recommends \
-    unrar-free \
+    unar \
     && rm -rf /var/lib/apt/lists/*
 
 # ---- Dependencies ----
@@ -22,7 +22,7 @@ RUN apt-get update && apt-get install -y \
     libgif-dev \
     librsvg2-dev \
     pkg-config \
-    unrar-free \
+    unar \
     && rm -rf /var/lib/apt/lists/*
 
 COPY package.json pnpm-workspace.yaml pnpm-lock.yaml* ./
@@ -63,7 +63,7 @@ RUN apt-get update && apt-get install -y \
     libgif-dev \
     librsvg2-dev \
     pkg-config \
-    unrar-free \
+    unar \
     && rm -rf /var/lib/apt/lists/*
 
 # Flat node_modules - no workspace symlinks, shared package bundled inside
