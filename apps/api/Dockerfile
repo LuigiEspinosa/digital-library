@@ -53,16 +53,12 @@ ENV NODE_ENV=production
 WORKDIR /app
 
 RUN corepack enable
-RUN apt-get update && apt-get install -y \
-    python3 \
-    make \
-    g++ \
-    libcairo2-dev \
-    libpango1.0-dev \
-    libjpeg-dev \
-    libgif-dev \
-    librsvg2-dev \
-    pkg-config \
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    libcairo2 \
+    libpango1.0-0 \
+    libjpeg62-turbo \
+    libgif7 \
+    librsvg2-2 \
     unar \
     && rm -rf /var/lib/apt/lists/*
 

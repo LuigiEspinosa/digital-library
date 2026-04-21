@@ -1,22 +1,22 @@
 {
-	"name": "digital-library",
-	"private": true,
-	"version": "0.0.1",
-	"scripts": {
-		"dev": "docker compose -f docker-compose.yml -f docker-compose.dev.yml up",
-		"build-docker": "docker compose -f docker-compose.yml -f docker-compose.dev.yml up --build",
-		"build": "pnpm --filter @digital-library/shared build && pnpm --filter !@digital-library/shared -r build",
-		"test": "vitest run",
-		"typecheck": "pnpm --filter @digital-library/shared build && pnpm -r typecheck"
-	},
-	"devDependencies": {
-		"@vitest/coverage-v8": "^2.1.9",
-		"typescript": "^5.9.3",
-		"vitest": "^2.1.9"
-	},
-	"engines": {
-		"node": ">=22.x",
-		"pnpm": ">=9"
-	},
-	"packageManager": "pnpm@10.30.1+sha512.3590e550d5384caa39bd5c7c739f72270234b2f6059e13018f975c313b1eb9fefcc09714048765d4d9efe961382c312e624572c0420762bdc5d5940cdf9be73a"
+  "name": "digital-library",
+  "private": true,
+  "version": "0.0.1",
+  "scripts": {
+    "dev": "docker compose -f docker-compose.yml -f docker-compose.dev.yml up",
+    "build-docker": "docker compose -f docker-compose.yml -f docker-compose.dev.yml up --build",
+    "build": "pnpm --filter @digital-library/shared build && pnpm --filter !@digital-library/shared -r build",
+    "test": "vitest run",
+    "typecheck": "pnpm --filter @digital-library/shared build && pnpm -r typecheck"
+  },
+  "devDependencies": {
+    "@vitest/coverage-v8": "^2.1.9",
+    "typescript": "^5.9.3",
+    "vitest": "^2.1.9"
+  },
+  "engines": {
+    "node": ">=22 <23",
+    "pnpm": ">=9"
+  },
+  "packageManager": "pnpm@10.30.1"
 }
