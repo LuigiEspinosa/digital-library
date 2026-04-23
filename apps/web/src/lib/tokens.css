@@ -1,0 +1,41 @@
+:root {
+  --page-ink: #1a1a1a;
+  --caption-gray: #757575;
+  --link-blue: #057dbc;
+
+  --font-display: 'Playfair Display', Georgia, serif;
+  --font-serif: 'Source Serif 4', Georgia, serif;
+  --font-sans: 'Inter', system-ui, sans-serif;
+  --font-mono: 'JetBrains Mono', ui-monospace, monospace;
+
+  --space-1: 1px;
+  --space-4: 4px;
+  --space-8: 8px;
+  --space-12: 12px;
+  --space-16: 16px;
+  --space-24: 24px;
+  --space-32: 32px;
+  --space-40: 40px;
+  --space-48: 48px;
+  --space-64: 64px;
+
+  --type-hero-size: 4rem;
+  --type-hero-line: 1.05;
+  --type-hero-tracking: -0.5px;
+
+  --type-display-size: 1.63rem;
+  --type-display-line: 1.2;
+  --type-display-tracking: 0;
+
+  --type-heading-size: 1.25rem;
+  --type-heading-line: 1.2;
+  --type-heading-tracking: -0.28px;
+
+  --type-body-size: 1rem;
+  --type-body-line: 1.5;
+  --type-body-tracking: 0.09px;
+
+  --type-kicker-size: 0.81rem;
+  --type-kicker-line: 1.23;
+  --type-kicker-tracking: 0.92px;
+}
