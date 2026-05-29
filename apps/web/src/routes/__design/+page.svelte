@@ -1,16 +1,11 @@
 <script lang="ts">
-	// * /__design is a developer smoke surface for the WIRED token layer
-	// * (stories 01.A.1 + 01.A.2 + 01.A.3). It is gated to dev-only by the
-	// * sibling +page.server.ts and is scheduled for deletion at the close
-	// * of Epic 01. If anything renders wrong here, the bug is in the
-	// * token layer, not in a product component.
+	// Dev-only smoke page proving the WIRED token layer (A.1–A.3) resolves; removed at the close of Epic 01.
 
 	type Swatch = {
 		name: string;
 		hex: string;
-		// * `border` carries the slate-200 hairline only on Paper White, so
-		// * the swatch is visible against the bg-white page canvas.
 		bg: string;
+		// Only Paper White sets a border, so it stays visible on the white canvas.
 		border?: string;
 	};
 
@@ -123,12 +118,7 @@
 			<p class="mb-2 font-mono text-[11px] uppercase tracking-[1.1px] text-caption">
 				LEVEL 4 · BLACK RIBBON BAR
 			</p>
-			<!-- ! Ribbon label uses font-mono regular weight (400), not 700.
-			     ! @fontsource/jetbrains-mono ships only 400 and 800 in apps/web's
-			     ! +layout.svelte; using `font-bold` here would render the
-			     ! synthetic-bold face (browser-faked) which is visually wrong.
-			     ! Track in Epic 02 if a real <Ribbon /> primitive needs the
-			     ! 700 weight; see Follow-ups in this delivery's apply checklist. -->
+			<!-- Weight 400, not font-bold: jetbrains-mono ships only 400/800 here, so bold would render a faked face. -->
 			<div class="flex h-9 w-full items-center bg-black px-6">
 				<span class="font-mono text-[12px] uppercase tracking-[1.2px] text-white">
 					DESIGN SYSTEM SMOKE
