@@ -1,5 +1,15 @@
 # Changelog
 
+## [Unreleased]
+
+### Changed
+
+- **Design system reset (Epic 01)**: replaced the shadcn token set with the WIRED editorial design system — self-hosted `@fontsource` fonts, a dedicated `apps/web/src/lib/tokens.css`, and a hard cutover of `apps/web/src/routes/layout.css`. Shipped screens are rebuilt against the new tokens in Epics 02–03.
+
+### Removed
+
+- Temporary dev-only `/__design` smoke route (story 01.A.4), used to verify the WIRED token layer in isolation. Removed at the close of Epic 01.
+
 ## [0.8.0] - Phase 8: PDF Reader
 
 ### Added
