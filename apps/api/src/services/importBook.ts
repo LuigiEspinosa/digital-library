@@ -1,11 +1,13 @@
-import { createHash } from "node:crypto";
-import { mkdir, rename, copyFile, unlink, readFile, stat } from "node:fs/promises";
-import path from "node:path";
-import sharp from "sharp";
-import type { Db } from "../db/connection.js";
-import { BookRepository } from "../db/repositories/BookRepository.js";
-import { extractMetadata } from "./metadata.js";
-import type { Book, BookFormat } from "@digital-library/shared";
+import { createHash } from 'node:crypto';
+import { createReadStream } from 'node:fs';
+import { mkdir, rename, copyFile, unlink, stat } from 'node:fs/promises';
+import { pipeline } from 'node:stream/promises';
+import path from 'node:path';
+import sharp from 'sharp';
+import type { Db } from '../db/connection.js';
+import { BookRepository } from '../db/repositories/BookRepository.js';
+import { extractMetadata } from './metadata.js';
+import type { Book, BookFormat } from '@digital-library/shared';
 
 const booksRoot = () => process.env.BOOKS_PATH ?? '/data/books';
 const coversRoot = () => process.env.COVERS_PATH ?? '/data/covers';
@@ -23,8 +25,16 @@ export function detectFormat(filename: string): BookFormat | null {
 }
 
 async function sha256File(filePath: string): Promise<string> {
-  const buf = await readFile(filePath);
-  return createHash('sha256').update(buf).digest('hex');
+  // * Streaming hash: constant memory regardless of file size.
+  // * Audit §3.1 - the previoues `readFile()` buffered the whole upload, so a
+  // * single 500MB upload allocated 500MB of RSS and two concurrent uploads
+  // * OOM-killed the API on a 1GB VPS. `pipeline` from node:stream/promises
+  // * is preferred over `stream.pipe(hash) + finished()` because it propagates
+  // * errors and cleans up listeners on either side automatically
+  const hash = createHash('sha256');
+  const stream = createReadStream(filePath);
+  await pipeline(stream, hash);
+  return hash.digest('hex');
 }
 
 async function moveFile(src: string, dest: string): Promise<void> {
@@ -53,7 +63,7 @@ async function generateCover(
 }
 
 export interface ImportResult {
-  book: Book,
+  book: Book;
   duplicate: boolean;
 }
 
@@ -65,10 +75,11 @@ export async function importBook(
   db: Db,
   libraryId: string,
   sourcePath: string,
-  originalFilename: string
+  originalFilename: string,
 ): Promise<ImportResult> {
   const format = detectFormat(originalFilename);
-  if (!format) throw new Error(`Unsupported format: ${path.extname(originalFilename)}`);
+  if (!format)
+    throw new Error(`Unsupported format: ${path.extname(originalFilename)}`);
 
   // 1. SHA-256 deduplication
   const sha256 = await sha256File(sourcePath);
@@ -94,7 +105,11 @@ export async function importBook(
 
   // 3. Extract metadata
   const fileStats = await stat(destPath);
-  const meta = await extractMetadata(destPath, format, path.basename(originalFilename, ext));
+  const meta = await extractMetadata(
+    destPath,
+    format,
+    path.basename(originalFilename, ext),
+  );
 
   // 4. Generate cover thumbnail
   let cover_path: string | undefined;
@@ -123,5 +138,5 @@ export async function importBook(
     sha256,
   });
 
-  return { book, duplicate: false }
+  return { book, duplicate: false };
 }

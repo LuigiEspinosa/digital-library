@@ -6,7 +6,7 @@ ENV PATH="$PNPM_HOME:$PATH"
 RUN corepack enable
 
 RUN apt-get update && apt-get install -y --no-install-recommends \
-    unrar-free \
+    unar \
     && rm -rf /var/lib/apt/lists/*
 
 # ---- Dependencies ----
@@ -22,7 +22,7 @@ RUN apt-get update && apt-get install -y \
     libgif-dev \
     librsvg2-dev \
     pkg-config \
-    unrar-free \
+    unar \
     && rm -rf /var/lib/apt/lists/*
 
 COPY package.json pnpm-workspace.yaml pnpm-lock.yaml* ./
@@ -53,17 +53,13 @@ ENV NODE_ENV=production
 WORKDIR /app
 
 RUN corepack enable
-RUN apt-get update && apt-get install -y \
-    python3 \
-    make \
-    g++ \
-    libcairo2-dev \
-    libpango1.0-dev \
-    libjpeg-dev \
-    libgif-dev \
-    librsvg2-dev \
-    pkg-config \
-    unrar-free \
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    libcairo2 \
+    libpango1.0-0 \
+    libjpeg62-turbo \
+    libgif7 \
+    librsvg2-2 \
+    unar \
     && rm -rf /var/lib/apt/lists/*
 
 # Flat node_modules - no workspace symlinks, shared package bundled inside

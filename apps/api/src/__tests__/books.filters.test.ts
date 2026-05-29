@@ -2,8 +2,10 @@ import { describe, test, expect, beforeEach, afterEach } from 'vitest';
 import type { FastifyInstance } from 'fastify';
 import { build } from '../app.js';
 import { UserRepository } from '../db/repositories/UserRepository.js';
-import { BookRepository, type CreateBookInput } from '../db/repositories/BookRepository.js';
-import { text } from 'node:stream/consumers';
+import {
+  BookRepository,
+  type CreateBookInput,
+} from '../db/repositories/BookRepository.js';
 
 function getDb(app: FastifyInstance): any {
   return (app as unknown as { db: ReturnType<typeof getDb> }).db;
@@ -16,7 +18,9 @@ describe('Book filter & browse', () => {
   let repo: BookRepository;
   let sha256Seq = 0;
 
-  function book(overrides: Partial<CreateBookInput> = {}): ReturnType<BookRepository['create']> {
+  function book(
+    overrides: Partial<CreateBookInput> = {},
+  ): ReturnType<BookRepository['create']> {
     const seq = ++sha256Seq;
     return repo.create({
       library_id: libraryId,
@@ -33,17 +37,24 @@ describe('Book filter & browse', () => {
     app = await build({ db: ':memory:', logger: false });
 
     const users = new UserRepository(getDb(app));
-    await users.create({ email: 'admin@test.com', password: 'adminpass', is_admin: true });
+    await users.create({
+      email: 'admin@test.com',
+      password: 'adminpass',
+      is_admin: true,
+    });
     await users.create({ email: 'user@test.com', password: 'userpass' });
 
     const { nanoid } = await import('nanoid');
     libraryId = nanoid();
-    getDb(app).prepare('INSERT INTO libraries (id, name) VALUES (?, ?)').run(libraryId, 'Test Library');
+    getDb(app)
+      .prepare('INSERT INTO libraries (id, name) VALUES (?, ?)')
+      .run(libraryId, 'Test Library');
 
     repo = new BookRepository(getDb(app));
 
     const login = await app.inject({
-      method: 'POST', url: '/api/auth/login',
+      method: 'POST',
+      url: '/api/auth/login',
       payload: { email: 'admin@test.com', password: 'adminpass' },
     });
     adminCookie = login.headers['set-cookie'] as string;
@@ -178,6 +189,35 @@ describe('Book filter & browse', () => {
     expect(res.json().data[0].author).toBe('Tolkien');
   });
 
+  test('malformed FTS input returns 200 with zero results, not 500 - `?q=foo%3A`', async () => {
+    book({ title: 'Robots and Science' });
+
+    const res = await app.inject({
+      method: 'GET',
+      url: `/api/libraries/${libraryId}/books?q=foo%3A`,
+      headers: { cookie: adminCookie },
+    });
+
+    expect(res.statusCode).toBe(200);
+    expect(res.json().total).toBe(0);
+    expect(res.json().data).toEqual([]);
+  });
+
+  test('all-metachar FTS input short-circuits to zero results', async () => {
+    book({ title: 'Robots and Science' });
+    book({ title: 'History of Cooking' });
+
+    const res = await app.inject({
+      method: 'GET',
+      url: `/api/libraries/${libraryId}/books?q=${encodeURIComponent('*():')}`,
+      headers: { cookie: adminCookie },
+    });
+
+    expect(res.statusCode).toBe(200);
+    expect(res.json().total).toBe(0);
+    expect(res.json().data).toEqual([]);
+  });
+
   // ---- Sorting ----
 
   test('defaults to title ascending', async () => {
@@ -242,7 +282,7 @@ describe('Book filter & browse', () => {
 
     expect(res.statusCode).toBe(200);
     const { data, total } = res.json();
-    expect(total).toBe(5);       // full count unaffected by pagination
+    expect(total).toBe(5); // full count unaffected by pagination
     expect(data).toHaveLength(2);
     expect(data[0].title).toBe('Book 03');
   });
@@ -279,8 +319,20 @@ describe('Book filter & browse', () => {
     });
 
     test('returns sorted distinct values', async () => {
-      book({ format: 'epub', author: 'Alice', series: 'S1', language: 'en', tags: ['fiction'] });
-      book({ format: 'pdf', author: 'Bob', series: 'S2', language: 'fr', tags: ['adventure', 'fiction'] });
+      book({
+        format: 'epub',
+        author: 'Alice',
+        series: 'S1',
+        language: 'en',
+        tags: ['fiction'],
+      });
+      book({
+        format: 'pdf',
+        author: 'Bob',
+        series: 'S2',
+        language: 'fr',
+        tags: ['adventure', 'fiction'],
+      });
       book({ format: 'epub', author: 'Alice' }); // duplicates
 
       const res = await app.inject({
@@ -301,7 +353,9 @@ describe('Book filter & browse', () => {
     test('does not include data from other libraries', async () => {
       const { nanoid } = await import('nanoid');
       const otherId = nanoid();
-      getDb(app).prepare('INSERT INTO libraries (id, name) VALUES (?, ?)').run(otherId, 'Other');
+      getDb(app)
+        .prepare('INSERT INTO libraries (id, name) VALUES (?, ?)')
+        .run(otherId, 'Other');
 
       book({ format: 'epub', author: 'Alice' });
       repo.create({
@@ -326,7 +380,8 @@ describe('Book filter & browse', () => {
 
     test('returns 403 for user without library access', async () => {
       const userLogin = await app.inject({
-        method: 'POST', url: '/api/auth/login',
+        method: 'POST',
+        url: '/api/auth/login',
         payload: { email: 'user@test.com', password: 'userpass' },
       });
       const userCookie = userLogin.headers['set-cookie'] as string;

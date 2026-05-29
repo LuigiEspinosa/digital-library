@@ -160,7 +160,9 @@ docker compose up -d
 ## Development
 
 ```bash
-# Prerequisites: Node 22, pnpm 10
+# Prerequisites: Node 22.x (see .nvmrc), pnpm 10
+# If you use fnm or nvm, cd into the repo and run
+fnm use             # or: nvm use
 corepack enable
 pnpm install
 
