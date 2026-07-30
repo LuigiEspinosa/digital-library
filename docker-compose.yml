@@ -46,7 +46,7 @@ services:
     depends_on:
       - redis
     healthcheck:
-      test: ["CMD", "wget", "-qO-", "http://localhost:4000/api/health"]
+      test: ["CMD", "node", "-e", "fetch('http://localhost:4000/api/health').then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))"]
       interval: 30s
       timeout: 5s
       retries: 3
@@ -65,7 +65,7 @@ services:
     depends_on:
       - api
     healthcheck:
-      test: ["CMD", "wget", "-qO-", "http://localhost:3000"]
+      test: ["CMD", "node", "-e", "fetch('http://localhost:3000/').then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))"]
       interval: 30s
       timeout: 5s
       retries: 3
