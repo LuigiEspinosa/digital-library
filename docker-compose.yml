@@ -1,5 +1,9 @@
 services:
   caddy:
+    # Standalone single-box ingress. On a shared host where another Caddy already
+    # owns 80/443, leave this off (it only starts with `--profile edge`) and proxy
+    # to `web`/`api` from that Caddy instead.
+    profiles: ["edge"]
     build:
       context: .
       dockerfile: Dockerfile.caddy
@@ -38,7 +42,6 @@ services:
       SMTP_PASS: ${SMTP_PASS:-}
       COMICVINE_API_KEY: ${COMICVINE_API_KEY:-}
     volumes:
-      - library_data:/data
       - ./data:/data
     depends_on:
       - redis
@@ -80,9 +83,6 @@ services:
       retries: 3
 
 volumes:
-  library_data:
-    # Persistent volume for SQLite DB, book files, and cover thumbnails.
-    # Never use ephemeral filesystems
   caddy_data:
   caddy_config:
   redis_data:
