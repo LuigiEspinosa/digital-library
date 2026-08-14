@@ -1,0 +1,24 @@
+# Without this, COPY apps/<app> ./apps/<app> in the Dockerfiles overwrites the
+# node_modules symlink farm that `pnpm install` just built inside the image with the
+# host's own (on Windows, pnpm junctions that do not survive the copy), and the build
+# dies on an unresolvable workspace dependency. A fresh clone on the VPS has no
+# node_modules, which is why this only bites when building from a working tree.
+**/node_modules
+
+# Build artifacts — every image regenerates these.
+**/.svelte-kit
+**/build
+**/dist
+**/*.tsbuildinfo
+
+# Never bake local state or secrets into an image; compose supplies env at runtime.
+.env
+data/
+**/*.db
+**/*.db-shm
+**/*.db-wal
+
+.git
+.github
+**/coverage
+**/.vitest
