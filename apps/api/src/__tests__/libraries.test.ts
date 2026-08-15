@@ -23,6 +23,33 @@ function insertLibrary(app: FastifyInstance, name: string, description?: string)
   return id;
 }
 
+function insertBook(
+  app: FastifyInstance,
+  libraryId: string,
+  title: string,
+  createdAt?: string
+): string {
+  const id = crypto.randomUUID();
+  if (createdAt) {
+    getDb(app)
+      .prepare(
+        'INSERT INTO books (id, library_id, title, format, file_path, created_at) VALUES (?, ?, ?, ?, ?, ?)'
+      )
+      .run(id, libraryId, title, 'epub', `/books/${id}.epub`, createdAt);
+  } else {
+    getDb(app)
+      .prepare('INSERT INTO books (id, library_id, title, format, file_path) VALUES (?, ?, ?, ?, ?)')
+      .run(id, libraryId, title, 'epub', `/books/${id}.epub`);
+  }
+  return id;
+}
+
+function grant(app: FastifyInstance, userId: string, libraryId: string): void {
+  getDb(app)
+    .prepare('INSERT INTO user_libraries (user_id, library_id) VALUES (?, ?)')
+    .run(userId, libraryId);
+}
+
 // ---- User-facing library routes ----
 
 describe('User-facing library routes', () => {
@@ -111,6 +138,110 @@ describe('User-facing library routes', () => {
 
     expect(res.statusCode).toBe(200);
     expect(res.json().data).toEqual([]);
+  });
+
+  // ---- List metadata: book_count / user_count / last_import_at (story C.2) ----
+
+  test('an empty library reports 0 books, 0 readers and a null last import', async () => {
+    insertLibrary(app, 'Barren');
+
+    const res = await app.inject({
+      method: 'GET',
+      url: '/api/libraries',
+      headers: { cookie: adminCookie },
+    });
+
+    const [lib] = res.json().data;
+    expect(lib.book_count).toBe(0);
+    expect(lib.user_count).toBe(0);
+    expect(lib.last_import_at).toBeNull();
+  });
+
+  // The regression the correlated-subquery form exists to prevent: a naive
+  // LEFT JOIN books + LEFT JOIN user_libraries under one GROUP BY multiplies the
+  // rows, so 2 books × 2 grants reports 4 and 4 instead of 2 and 2.
+  test('book_count and user_count do not inflate each other', async () => {
+    const libId = insertLibrary(app, 'Crossed');
+    insertBook(app, libId, 'Book One');
+    insertBook(app, libId, 'Book Two');
+
+    const users = new UserRepository(getDb(app));
+    const second = await users.create({ email: 'second@example.com', password: 'secondpass' });
+    grant(app, userId, libId);
+    grant(app, second.id, libId);
+
+    const res = await app.inject({
+      method: 'GET',
+      url: '/api/libraries',
+      headers: { cookie: adminCookie },
+    });
+
+    const [lib] = res.json().data;
+    expect(lib.book_count).toBe(2);
+    expect(lib.user_count).toBe(2);
+  });
+
+  test('last_import_at is the newest books.created_at, not the first inserted', async () => {
+    const libId = insertLibrary(app, 'Dated');
+    insertBook(app, libId, 'Oldest', '2026-04-19 11:02:33');
+    insertBook(app, libId, 'Newest', '2026-08-01 09:00:00');
+    insertBook(app, libId, 'Middle', '2026-06-15 12:00:00');
+
+    const res = await app.inject({
+      method: 'GET',
+      url: '/api/libraries',
+      headers: { cookie: adminCookie },
+    });
+
+    expect(res.json().data[0].last_import_at).toBe('2026-08-01 09:00:00');
+  });
+
+  // listForUser is a different SQL statement from listAll, so the non-admin path
+  // has to be asserted separately or half the query goes uncovered.
+  //
+  // 2 books x 2 grants, NOT 1 and 1: listForUser already INNER JOINs user_libraries,
+  // so it is the statement most likely to regress into a row-multiplying join — and
+  // a 1x1 fixture cannot tell 1 from 1*1. These are the numbers that go red.
+  test('a non-admin sees the same three fields, uninflated, on a granted library', async () => {
+    const libId = insertLibrary(app, 'Granted');
+    insertBook(app, libId, 'First Book', '2026-07-04 08:30:00');
+    insertBook(app, libId, 'Second Book', '2026-07-02 08:30:00');
+
+    const users = new UserRepository(getDb(app));
+    const second = await users.create({ email: 'granted-too@example.com', password: 'secondpass' });
+    grant(app, userId, libId);
+    grant(app, second.id, libId);
+
+    const res = await app.inject({
+      method: 'GET',
+      url: '/api/libraries',
+      headers: { cookie: userCookie },
+    });
+
+    const [lib] = res.json().data;
+    expect(lib.book_count).toBe(2);
+    expect(lib.user_count).toBe(2);
+    expect(lib.last_import_at).toBe('2026-07-04 08:30:00');
+  });
+
+  // findById returns the same Library type but must NOT grow the list-only fields —
+  // that is why they are declared optional on the shared interface.
+  test('GET /api/libraries/:id does not grow the list-only metadata fields', async () => {
+    const libId = insertLibrary(app, 'Single');
+    insertBook(app, libId, 'A Book');
+    grant(app, userId, libId);
+
+    const res = await app.inject({
+      method: 'GET',
+      url: `/api/libraries/${libId}`,
+      headers: { cookie: userCookie },
+    });
+
+    const { library } = res.json();
+    expect(library.id).toBe(libId);
+    expect(library).not.toHaveProperty('book_count');
+    expect(library).not.toHaveProperty('user_count');
+    expect(library).not.toHaveProperty('last_import_at');
   });
 
   test('GET /api/libraries/:id returns library for user with access', async () => {

@@ -4,6 +4,15 @@ const API_URL = process.env.PUBLIC_API_URL ?? 'http://api:4000';
 
 export type LibraryWithCount = Library & { user_count: number };
 
+// GET /api/libraries always sends the three aggregates, but they are optional on
+// the shared Library type because findById/create/update return that same type
+// without them. Narrowing here is what lets the picker read them as real values.
+export type LibraryListEntry = Library & {
+  book_count: number;
+  user_count: number;
+  last_import_at: string | null;
+};
+
 export async function getSessionUser(cookie: string): Promise<User | null> {
   try {
     const res = await fetch(`${API_URL}/api/auth/me`, {
@@ -75,7 +84,7 @@ export async function deleteUser(
   return null;
 };
 
-export async function listLibraries(cookie: string): Promise<Library[]> {
+export async function listLibraries(cookie: string): Promise<LibraryListEntry[]> {
   try {
     const res = await fetch(`${API_URL}/api/libraries`, { headers: { cookie } });
     if (!res.ok) return [];

@@ -30,6 +30,12 @@ export interface Library {
   name: string;
   description?: string;
   created_at: string;
+  // Present on list payloads (GET /api/libraries). Absent on findById/create/update,
+  // which return this same type — hence optional rather than required.
+  book_count?: number;
+  user_count?: number;
+  // MAX(books.created_at) for this library; null when the library has no books.
+  last_import_at?: string | null;
 }
 
 // ---- User ----
