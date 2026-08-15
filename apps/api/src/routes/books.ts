@@ -83,6 +83,7 @@ export const bookRoutes: FastifyPluginAsync = async (fastify) => {
         sort: query.sort as BookFilters['sort'],
         order: query.order as BookFilters['order'],
       },
+      request.user!.id,
     );
 
     reply.send({ data: result.books, total: result.total, limit, offset });

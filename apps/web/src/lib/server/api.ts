@@ -1,4 +1,4 @@
-import type { Book, Library, LibraryFilters, User } from '@digital-library/shared';
+import type { Book, BookWithProgress, Library, LibraryFilters, User } from '@digital-library/shared';
 
 const API_URL = process.env.PUBLIC_API_URL ?? 'http://api:4000';
 
@@ -213,7 +213,7 @@ export async function listLibraryBooks(
   cookie: string,
   libraryId: string,
   searchParams: URLSearchParams = new URLSearchParams()
-): Promise<{ books: Book[]; total: number; limit: number; offset: number }> {
+): Promise<{ books: BookWithProgress[]; total: number; limit: number; offset: number }> {
   try {
     const res = await fetch(
       `${API_URL}/api/libraries/${libraryId}/books?${searchParams.toString()}`,

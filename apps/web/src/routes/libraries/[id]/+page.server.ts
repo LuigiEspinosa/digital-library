@@ -7,6 +7,21 @@ import type { Book } from '@digital-library/shared';
 const API_URL = process.env.PUBLIC_API_URL ?? 'http://api:4000';
 const PAGE_SIZE = 24;
 
+// The URL carries the friendly `comic`; the API gets the concrete stored formats.
+// Widening lives in the repository's IN-list — sending `comic` alone matches nothing.
+const COMIC_FORMATS = 'cbz,cbr,images';
+
+// Any narrow comic format lights the single COMIC segment, so the data it fetches
+// must be the whole comic set too — otherwise the lit segment claims CBR and images
+// that were never requested, and re-clicking it is a no-op (FilterStrip ignores a
+// no-change select), leaving no way to widen.
+const COMIC_ALIASES = new Set(['cbz', 'cbr', 'images', 'comic']);
+
+// An unrecognised value is dropped rather than forwarded: `?format=,` used to parse
+// to an empty IN-list and return the WHOLE library while the result bar still
+// claimed a filter was active and no segment lit.
+const KNOWN_FORMATS = new Set(['epub', 'pdf', 'cbz', 'cbr', 'images', 'comic']);
+
 function coverUrl(book: Book): string | undefined {
   if (!book.cover_path) return undefined;
   return `/files/covers/${path.basename(book.cover_path)}`;
@@ -19,7 +34,8 @@ export const load: PageServerLoad = async ({ request, params, parent, url }) => 
   const cookie = request.headers.get('cookie') ?? '';
 
   const q = url.searchParams.get('q') ?? undefined;
-  const format = url.searchParams.get('format') ?? undefined;
+  const rawFormat = url.searchParams.get('format')?.trim().toLowerCase();
+  const format = rawFormat && KNOWN_FORMATS.has(rawFormat) ? rawFormat : undefined;
   const author = url.searchParams.get('author') ?? undefined;
   const series = url.searchParams.get('series') ?? undefined;
   const language = url.searchParams.get('language') ?? undefined;
@@ -27,13 +43,19 @@ export const load: PageServerLoad = async ({ request, params, parent, url }) => 
   const tags = tagsParam ? tagsParam.split(',').filter(Boolean) : undefined;
   const sort = url.searchParams.get('sort') ?? 'title';
   const order = url.searchParams.get('order') ?? 'asc';
-  const view = url.searchParams.get('view') === 'list' ? 'list' : 'grid';
-  const page = Math.max(1, parseInt(url.searchParams.get('page') ?? '1', 10));
+  // Number(), not parseInt(): `?page=` yields '' (not null, so `??` never fires) and
+  // parseInt('') is NaN, which survived Math.max and painted `Showing NaN–NaN of 127`
+  // with both pager controls live and offset=NaN forwarded to the API.
+  const pageParam = Number(url.searchParams.get('page'));
+  const page = Number.isFinite(pageParam) && pageParam >= 1 ? Math.floor(pageParam) : 1;
   const offset = (page - 1) * PAGE_SIZE;
+
+  // Which segment lights up. A bookmarked ?format=cbz still shows COMIC active.
+  const activeFormat = format && COMIC_ALIASES.has(format) ? 'comic' : (format ?? '');
 
   const apiParams = new URLSearchParams();
   if (q) apiParams.set('q', q);
-  if (format) apiParams.set('format', format);
+  if (format) apiParams.set('format', activeFormat === 'comic' ? COMIC_FORMATS : format);
   if (author) apiParams.set('author', author);
   if (series) apiParams.set('series', series);
   if (language) apiParams.set('language', language);
@@ -51,12 +73,28 @@ export const load: PageServerLoad = async ({ request, params, parent, url }) => 
 
   if (!library) error(404, 'Library not found.');
 
+  // A page past the end returns zero rows while `total` stays high, so the empty
+  // state (which keys on total) never fires and the grid renders blank with an
+  // inverted `Showing 2399953–127 of 127`. Land the reader on the last real page
+  // instead. Reachable by bookmark, by Back, and by an admin deleting enough books
+  // while a reader sits on the last page.
+  const lastPage = Math.max(1, Math.ceil(bookResult.total / PAGE_SIZE));
+  if (bookResult.total > 0 && page > lastPage) {
+    const target = new URL(url);
+    target.searchParams.set('page', String(lastPage));
+    redirect(302, `${target.pathname}${target.search}`);
+  }
+
   return {
     library,
     books: bookResult.books.map((b) => ({ ...b, coverUrl: coverUrl(b) })),
     total: bookResult.total,
     filterOptions,
-    filters: { q, format, author, series, language, tags, sort, order, view, page },
+    filters: { q, format, author, series, language, tags, sort, order, page },
+    // The sort-restore guard reads this rather than importing $app/stores, which
+    // keeps the route's client import graph to $app/navigation + $app/forms.
+    sortExplicit: url.searchParams.has('sort') || url.searchParams.has('order'),
+    activeFormat,
     pageSize: PAGE_SIZE
   };
 };

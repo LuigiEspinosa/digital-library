@@ -33,6 +33,19 @@ describe('UtilityBar', () => {
 		expect(container.querySelectorAll('[aria-hidden="true"]').length).toBe(0);
 	});
 
+	// Truncation is a visual measure only: the ellipsis is painted by CSS, so the
+	// full name must still reach the DOM for a screen reader to announce it.
+	test('a very long segment still reaches the DOM in full', () => {
+		const long =
+			'The Complete Annotated Reference Shelf Of Extremely Long Library Names And Other Curiosities';
+		const { container } = render(UtilityBar, {
+			breadcrumb: ['Cuatro Library', 'Libraries', long]
+		});
+
+		const crumbs = [...container.querySelectorAll('.crumb')].map((el) => el.textContent);
+		expect(crumbs.at(-1)).toBe(long);
+	});
+
 	test('renders rightSlot content into the right region', () => {
 		const { container } = render(UtilityBarHarness, { breadcrumb: ['Cuatro Library'] });
 
@@ -117,5 +130,25 @@ describe('UtilityBar divider source guard', () => {
 	test('the edge rules reach the button one level down', () => {
 		expect(src).toMatch(/:global\(\s*form:first-child\s*>\s*button\s*\)\s*\{[^}]*padding-left:\s*0/);
 		expect(src).toMatch(/:global\(\s*form:last-child\s*>\s*button\s*\)\s*\{[^}]*padding-right:\s*0/);
+	});
+
+	// C.3 puts the first USER-SUPPLIED segment in the breadcrumb (a library name).
+	// jsdom paints no ellipsis, so these four rules are pinned on the source or a
+	// revert leaves the whole suite green — the C.1/C.2 trap, third time around.
+	test('a long crumb ellipsizes instead of compressing the session strip', () => {
+		const crumbRule = src.match(/\.utility-left\s+\.crumb\s*\{([^}]*)\}/)?.[1];
+		expect(crumbRule).toBeTruthy();
+		expect(crumbRule).toMatch(/text-overflow:\s*ellipsis/);
+		expect(crumbRule).toMatch(/overflow:\s*hidden/);
+		expect(crumbRule).toMatch(/white-space:\s*nowrap/);
+		expect(crumbRule).toMatch(/min-width:\s*0/);
+
+		// The crumb can only shrink if its container clips and the separators do not.
+		expect(src).toMatch(/\.utility-left\s*\{[^}]*overflow:\s*hidden/);
+		expect(src).toMatch(/\.utility-left\s+\.sep\s*\{[^}]*flex:\s*0\s+0\s+auto/);
+	});
+
+	test('the session strip refuses to shrink', () => {
+		expect(src).toMatch(/\.utility-right\s*\{[^}]*flex-shrink:\s*0/);
 	});
 });

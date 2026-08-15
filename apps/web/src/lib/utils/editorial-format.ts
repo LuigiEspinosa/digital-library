@@ -1,4 +1,4 @@
-import type { Library } from '@digital-library/shared';
+import type { Book, BookFormat, Library } from '@digital-library/shared';
 
 /**
  * Editorial formatting for the library picker's mono metadata.
@@ -135,4 +135,79 @@ export function relative(
   if (days < 30) return plural(Math.floor(days / 7), 'week');
   if (days < 365) return plural(Math.min(11, Math.floor(days / 30)), 'month');
   return plural(Math.floor(days / 365), 'year');
+}
+
+// ---- Book metadata (library grid) ----
+
+/**
+ * Formats whose stored position is a page NUMBER. EPUB stores an opaque CFI,
+ * which carries no fraction of the whole and so can never yield a percentage.
+ */
+const PAGE_BASED_FORMATS = new Set<string>(['pdf', 'cbz', 'cbr', 'images']);
+
+/**
+ * The tile's reading indicator, degraded per format because the data behind it is
+ * uneven: books.page_count is populated for PDF only until Epic 04 D.1 lands comic
+ * page counts, at which point comics start reading `Reading · NN%` for free.
+ *
+ * Parsed strictly here rather than through pdfUtils' parseStoredPage, which
+ * defaults to 1 and therefore cannot tell an unparseable position (a CFI) from
+ * page one — the distinction this whole function turns on.
+ */
+export function progressLabel(
+  book: Pick<Book, 'format' | 'page_count'> & { progress_position: string | null }
+): string {
+  const position = book.progress_position?.trim() ?? '';
+  if (!position) return 'Unread';
+
+  const pageCount = book.page_count;
+  const countable =
+    typeof pageCount === 'number' && Number.isFinite(pageCount) && pageCount > 0;
+
+  if (!PAGE_BASED_FORMATS.has(book.format) || !countable || !/^\d+$/.test(position)) {
+    return 'Reading';
+  }
+
+  // Pages are 1-based, so a stored '0' (or '000') is degenerate, not page zero.
+  // Without this it reaches the pct <= 0 clamp below and claims `Reading · 1%`.
+  const parsed = Number(position);
+  if (parsed < 1) return 'Reading';
+
+  const page = Math.min(parsed, pageCount);
+  if (page >= pageCount) return 'Finished';
+
+  // Page 1 of 288 rounds to 0% and page 287 of 288 rounds to 100% — both
+  // contradict the word beside them, so the ends are clamped rather than shown.
+  const pct = Math.round((page / pageCount) * 100);
+  if (pct <= 0) return 'Reading · 1%';
+  if (pct >= 100) return 'Reading · 99%';
+  return `Reading · ${pct}%`;
+}
+
+/**
+ * The uppercase initialisms are NOT a break with the author-cased convention —
+ * EPUB, PDF, CBZ and CBR are their real casing. `Images` is a word, so it is
+ * title-cased and left for MonoKicker's CSS to shout.
+ */
+const FORMAT_LABELS: Record<BookFormat, string> = {
+  epub: 'EPUB',
+  pdf: 'PDF',
+  cbz: 'CBZ',
+  cbr: 'CBR',
+  images: 'Images'
+};
+
+export function formatLabel(format: BookFormat): string {
+  return FORMAT_LABELS[format] ?? format;
+}
+
+/**
+ * The leading 4-digit year of a publication date, or null for anything else
+ * ('n.d.', an empty string, a missing value). The caller omits the ` · YEAR`
+ * half rather than printing a placeholder.
+ */
+export function publicationYear(published_at?: string): string | null {
+  const match = /^\s*(\d{4})(?!\d)/.exec(published_at ?? '');
+  // '0000' is a null-date sentinel in several metadata sources, not a year.
+  return match && match[1] !== '0000' ? match[1] : null;
 }

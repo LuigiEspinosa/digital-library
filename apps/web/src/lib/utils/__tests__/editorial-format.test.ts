@@ -5,8 +5,12 @@ import {
   bookCountLabel,
   readerCountLabel,
   vibeTag,
-  relative
+  relative,
+  progressLabel,
+  formatLabel,
+  publicationYear
 } from '../editorial-format';
+import type { BookFormat } from '@digital-library/shared';
 
 describe('pad2', () => {
   test('pads a single digit to two', () => {
@@ -246,3 +250,123 @@ describe('relative', () => {
     expect(relative(agoBy(2 * HOUR), now)).toBe('2 hours ago');
   });
 });
+
+describe('progressLabel', () => {
+  const book = (
+    format: BookFormat,
+    progress_position: string | null,
+    page_count?: number
+  ) => ({ format, progress_position, page_count });
+
+  test('no stored position reads as unread', () => {
+    expect(progressLabel(book('pdf', null, 288))).toBe('Unread');
+    expect(progressLabel(book('pdf', '', 288))).toBe('Unread');
+    expect(progressLabel(book('pdf', '   ', 288))).toBe('Unread');
+  });
+
+  // An EPUB position is an opaque CFI: it carries no fraction of the whole, so a
+  // percentage cannot be derived from it at all — never a number beside "Reading".
+  test('an EPUB CFI reads as a bare Reading, with no percentage', () => {
+    const label = progressLabel(book('epub', 'epubcfi(/6/14!/4/2/2/1:0)'));
+    expect(label).toBe('Reading');
+    expect(label).not.toContain('%');
+  });
+
+  test('a PDF part-way through reads as a percentage', () => {
+    expect(progressLabel(book('pdf', '121', 288))).toBe('Reading · 42%');
+  });
+
+  test('a PDF on its last page is finished, and past it clamps', () => {
+    expect(progressLabel(book('pdf', '288', 288))).toBe('Finished');
+    expect(progressLabel(book('pdf', '999', 288))).toBe('Finished');
+  });
+
+  // Both clamps contradict the word beside them if left alone: page 1 of 288
+  // rounds to 0% ("Reading · 0%") and page 287 rounds to 100% while unfinished.
+  test('the first page never reads 0% and the last-but-one never reads 100%', () => {
+    expect(progressLabel(book('pdf', '1', 288))).toBe('Reading · 1%');
+    expect(progressLabel(book('pdf', '287', 288))).toBe('Reading · 99%');
+  });
+
+  test('a page-based format with no usable page_count degrades to Reading', () => {
+    expect(progressLabel(book('pdf', '121', undefined))).toBe('Reading');
+    expect(progressLabel(book('pdf', '121', 0))).toBe('Reading');
+  });
+
+  // The Epic 04 D.1 state: comics store a page number but carry no page_count
+  // yet, so they read bare today and upgrade to a percentage for free later.
+  test('a comic with a position but no page count reads as Reading', () => {
+    expect(progressLabel(book('cbz', '12'))).toBe('Reading');
+    expect(progressLabel(book('cbr', '12'))).toBe('Reading');
+  });
+
+  test('a comic that HAS a page count reads as a percentage', () => {
+    expect(progressLabel(book('cbz', '12', 24))).toBe('Reading · 50%');
+  });
+
+  // Strict parse: parseInt would read '4/12' as page 4 and print a confident,
+  // wrong percentage. That is why pdfUtils' parseStoredPage is not reused here.
+  test('an unparseable position degrades rather than guessing a page', () => {
+    expect(progressLabel(book('pdf', 'abc', 288))).toBe('Reading');
+    expect(progressLabel(book('pdf', '4/12', 288))).toBe('Reading');
+    expect(progressLabel(book('pdf', '12.5', 288))).toBe('Reading');
+  });
+
+  // Pages are 1-based, so '0' is degenerate input, not page zero — and the pct <= 0
+  // clamp that rescues page 1 of 288 would otherwise dress it up as `Reading · 1%`.
+  test('a zero position degrades rather than reading as one percent', () => {
+    expect(progressLabel(book('pdf', '0', 288))).toBe('Reading');
+    expect(progressLabel(book('pdf', '000', 288))).toBe('Reading');
+  });
+
+  // Compares each label against its OWN uppercased form, so it pins the CONVENTION
+  // rather than restating values the exact assertions above already fix — the shape
+  // that stays meaningful when the copy changes.
+  test('is author-cased, never pre-shouted', () => {
+    const labels = [
+      progressLabel(book('pdf', '121', 288)),
+      progressLabel(book('pdf', null)),
+      progressLabel(book('epub', 'epubcfi(/6/4!/4/2)')),
+      progressLabel(book('pdf', '288', 288))
+    ];
+
+    for (const label of labels) {
+      expect(label).not.toBe(label.toUpperCase());
+    }
+  });
+});
+
+describe('formatLabel', () => {
+  // EPUB/PDF/CBZ/CBR are initialisms — caps IS their real casing, so they are not
+  // a break with the author-cased convention. 'Images' is a word and stays so.
+  test('names every format', () => {
+    expect(formatLabel('epub')).toBe('EPUB');
+    expect(formatLabel('pdf')).toBe('PDF');
+    expect(formatLabel('cbz')).toBe('CBZ');
+    expect(formatLabel('cbr')).toBe('CBR');
+    expect(formatLabel('images')).toBe('Images');
+  });
+});
+
+describe('publicationYear', () => {
+  test('takes the leading four-digit year', () => {
+    expect(publicationYear('2019-05-07')).toBe('2019');
+    expect(publicationYear('2019')).toBe('2019');
+  });
+
+  // The caller omits the ` · YEAR` half on null rather than printing a placeholder.
+  test('anything without a leading year is null', () => {
+    expect(publicationYear(undefined)).toBeNull();
+    expect(publicationYear('')).toBeNull();
+    expect(publicationYear('n.d.')).toBeNull();
+    expect(publicationYear('May 2019')).toBeNull();
+  });
+
+  // Several metadata sources use 0000 as a null-date sentinel, and `EPUB · 0000`
+  // reads as a real year rather than as missing data.
+  test('the 0000 null-date sentinel is not a year', () => {
+    expect(publicationYear('0000')).toBeNull();
+    expect(publicationYear('0000-01-01')).toBeNull();
+  });
+});
+

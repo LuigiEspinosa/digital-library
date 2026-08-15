@@ -40,17 +40,33 @@
 		display: flex;
 		align-items: center;
 		min-width: 0;
+		overflow: hidden;
+	}
+
+	/* Breadcrumbs carry user-supplied text from Epic 03 C.3 on (a library name), so
+	   a long segment must ellipsize rather than compress or displace the session
+	   strip on the right. Truncation is VISUAL only — the full string stays in the
+	   DOM for a screen reader. */
+	.utility-left .crumb {
+		min-width: 0;
+		overflow: hidden;
+		text-overflow: ellipsis;
+		white-space: nowrap;
 	}
 
 	.utility-left .sep {
+		flex: 0 0 auto;
 		margin: 0 var(--space-8);
 		user-select: none;
 	}
 
+	/* Without this the session strip is the flex item that gives way first, so a
+	   long crumb pushes Admin / Sign out off the bar instead of truncating itself. */
 	.utility-right {
 		display: flex;
 		align-items: center;
 		height: 100%;
+		flex-shrink: 0;
 	}
 
 	/* Slot content is authored by the caller, so it lives outside this component's

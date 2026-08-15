@@ -7,11 +7,14 @@ export default defineConfig({
   plugins: [svelte({ hot: !process.env.VITEST }), svelteTesting()],
   resolve: {
     alias: {
-      // Both aliases resolve against this config file, not the cwd: the root
+      // Every alias resolves against this config file, not the cwd: the root
       // `pnpm test` (the CI repro) runs vitest.workspace.ts from the repo root, where
       // a bare path.resolve('./src/…') points outside apps/web and fails to resolve.
       '$lib': fileURLToPath(new URL('./src/lib', import.meta.url)),
       '$app/forms': fileURLToPath(new URL('./src/lib/testing/app-forms.ts', import.meta.url)),
+      '$app/navigation': fileURLToPath(
+        new URL('./src/lib/testing/app-navigation.ts', import.meta.url)
+      ),
     },
   },
   test: {
