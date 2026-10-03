@@ -161,6 +161,40 @@ describe('the fixture', () => {
   });
 });
 
+/**
+ * Every table the migration writes, classified (the record's § The reset item 3). `reset`: deleted with the
+ * fixture library by its cascade. `principal`: the accounts, of which the reset writes none. `structural`: the
+ * full-text index, which the triggers on `books` keep. A new table fails the case below until it is classified,
+ * so Visitor state in a table the reset does not reach cannot outlive a reset unnoticed.
+ */
+const TABLES: Record<string, 'reset' | 'principal' | 'structural'> = {
+  libraries: 'reset',
+  user_libraries: 'reset',
+  books: 'reset',
+  reading_progress: 'reset',
+  users: 'principal',
+  sessions: 'principal',
+  books_fts: 'structural',
+  books_fts_config: 'structural',
+  books_fts_data: 'structural',
+  books_fts_docsize: 'structural',
+  books_fts_idx: 'structural',
+};
+
+describe('the scope', () => {
+  test('classifies every table, and each reset table reaches libraries by ON DELETE CASCADE', () => {
+    const tables = (app.db.prepare("SELECT name FROM sqlite_master WHERE type = 'table' AND name NOT LIKE 'sqlite_%' ORDER BY name").all() as { name: string }[])
+      .map((t) => t.name);
+    expect(tables).toEqual(Object.keys(TABLES).sort());
+    const reaches = (table: string, seen = new Set<string>()): boolean =>
+      table === 'libraries' ||
+      (!seen.has(table) &&
+        (app.db.prepare('SELECT "table", on_delete FROM pragma_foreign_key_list(?)').all(table) as { table: string; on_delete: string }[])
+          .some((fk) => fk.on_delete === 'CASCADE' && reaches(fk.table, seen.add(table))));
+    for (const [table, kind] of Object.entries(TABLES)) if (kind === 'reset') expect(reaches(table), table).toBe(true);
+  });
+});
+
 describe('the reset', () => {
   test('empties the demo scope to the fixture twice over, the second run changing nothing, and never touches the Operator', async () => {
     const operatorBefore = operatorPart(dump());
