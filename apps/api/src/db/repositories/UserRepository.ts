@@ -2,6 +2,7 @@ import { nanoid } from 'nanoid';
 import { hash, verify } from '@node-rs/argon2';
 import type { Db } from '../connection.js';
 import type { User } from '@digital-library/shared';
+import { isDemoPrincipal } from '../../acl.js';
 
 // Argon2id parameters - from OWASP recommendations
 const ARGON2_OPTIONS = {
@@ -62,6 +63,11 @@ export class UserRepository {
     password: string;
     is_admin?: boolean;
   }): Promise<User> {
+    // cuatro-portfolio Story 5.8: the demo principal is never an admin, since an
+    // admin's reach would cross its scope (acl.ts).
+    if (opts.is_admin && isDemoPrincipal(opts.email)) {
+      throw new Error('The demo principal cannot be an admin.');
+    }
     const id = nanoid();
     const hashed_password = await hash(opts.password, ARGON2_OPTIONS);
 
@@ -79,6 +85,11 @@ export class UserRepository {
   }
 
   delete(id: string): void {
+    // cuatro-portfolio Story 5.8: the demo principal cannot be deleted from inside
+    // the application.
+    if (isDemoPrincipal(this.findById(id)?.email)) {
+      throw new Error('The demo principal cannot be deleted.');
+    }
     this.db.prepare('DELETE FROM users WHERE id = ?').run(id);
   }
 

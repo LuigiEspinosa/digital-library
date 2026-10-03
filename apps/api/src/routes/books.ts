@@ -142,6 +142,10 @@ export const bookRoutes: FastifyPluginAsync = async (fastify) => {
     if (!request.user!.is_admin) {
       return reply.code(403).send({ statusCode: 403, error: 'Forbidden', message: 'Admin only.' });
     }
+    // cuatro-portfolio Story 5.8: not across the demo scope's boundary either.
+    if (!hasAccess(fastify.db, request.user!.id, book.library_id, true)) {
+      return reply.code(404).send({ statusCode: 404, error: 'Not Found', message: 'Book not found.' });
+    }
     repo.delete(id);
     await unlink(book.file_path).catch(() => {});
     if (book.cover_path) await unlink(book.cover_path).catch(() => {});
