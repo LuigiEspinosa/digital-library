@@ -5,7 +5,7 @@ import type { FastifyInstance } from 'fastify';
 import { nanoid } from 'nanoid';
 import { build } from '../app';
 import { UserRepository } from '../db/repositories/UserRepository';
-import { DEMO_PRINCIPAL, getAllowedLibraryIds, grantAccess, hasAccess, inDemoScope, isDemoPrincipal, ScopeError } from '../acl';
+import { DEMO_PRINCIPAL, getAllowedLibraryIds, grantAccess, hasAccess, inDemoScope, isDemoPrincipal, revokeAccess, ScopeError } from '../acl';
 
 // The demo principal contract in digital-library (cuatro-portfolio Story 5.8,
 // AD-13, ops/demo-principal.md there): its ownership scope is the libraries it
@@ -100,6 +100,11 @@ describe('ownership scopes', () => {
     const fresh = library('Fresh');
     grantAccess(app.db, ids.demo, fresh);
     expect(inDemoScope(app.db, fresh)).toBe(true);
+
+    // And it never leaves the scope still holding what the demo principal wrote: only deletion ends it.
+    expect(() => revokeAccess(app.db, ids.demo, fresh)).toThrow(ScopeError);
+    revokeAccess(app.db, ids.reader, libs.operator);
+    expect(hasAccess(app.db, ids.reader, libs.operator, false)).toBe(false);
   });
 
   test('over HTTP: the admin grant answers 409, and neither side reads, writes or deletes across', async () => {
@@ -109,6 +114,13 @@ describe('ownership scopes', () => {
       headers: { cookie: cookies.admin },
     });
     expect(grant.statusCode).toBe(409);
+    const revoke = await app.inject({
+      method: 'DELETE',
+      url: `/api/admin/users/${ids.demo}/libraries/${libs.demo}`,
+      headers: { cookie: cookies.admin },
+    });
+    expect(revoke.statusCode).toBe(409);
+    expect(inDemoScope(app.db, libs.demo)).toBe(true);
 
     const listed = async (cookie: string) =>
       (await app.inject({ method: 'GET', url: '/api/libraries', headers: { cookie } })).json().data.map((l: { id: string }) => l.id);

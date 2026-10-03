@@ -110,12 +110,19 @@ export function grantAccess(
   `).run(userId, libraryId);
 }
 
-/** Revoke a user's access to a library. */
+/**
+ * Revoke a user's access to a library. Never the demo principal's: its library
+ * would leave the demo scope still holding what the demo principal wrote there,
+ * so a demo library leaves the scope only by being deleted.
+ */
 export function revokeAccess(
   db: Db,
   userId: string,
   libraryId: string
 ): void {
+  if (userId === demoUserId(db) && inDemoScope(db, libraryId)) {
+    throw new ScopeError('A library leaves the demo scope only by being deleted.');
+  }
   db.prepare(
     'DELETE FROM user_libraries WHERE user_id = ? AND library_id = ?'
   ).run(userId, libraryId);

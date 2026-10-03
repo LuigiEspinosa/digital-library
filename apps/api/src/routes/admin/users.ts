@@ -149,7 +149,12 @@ export const adminUserRoutes: FastifyPluginAsync = async (fastify) => {
     '/users/:userId/libraries/:libraryId',
     async (request, reply) => {
       const { userId, libraryId } = request.params;
-      revokeAccess(fastify.db, userId, libraryId);
+      try {
+        revokeAccess(fastify.db, userId, libraryId);
+      } catch (err) {
+        if (!(err instanceof ScopeError)) throw err;
+        return reply.code(409).send({ statusCode: 409, error: 'Conflict', message: err.message });
+      }
       return reply.code(204).send();
     }
   );
