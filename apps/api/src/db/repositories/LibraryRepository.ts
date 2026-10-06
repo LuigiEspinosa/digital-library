@@ -14,16 +14,32 @@ interface UpdateLibraryInput {
 export class LibraryRepository {
   constructor(private db: Db) { }
 
+  // The three aggregates are correlated subqueries rather than LEFT JOIN + GROUP BY:
+  // joining books and user_libraries in one statement produces book_count × user_count
+  // rows, which inflates both counts. Subqueries keep each aggregate independent.
+  // user_count deliberately counts ALL grants on the library, not just the caller's.
+  private static readonly AGGREGATES = `
+    (SELECT COUNT(*)          FROM books b          WHERE b.library_id = l.id) AS book_count,
+    (SELECT COUNT(*)          FROM user_libraries u WHERE u.library_id = l.id) AS user_count,
+    (SELECT MAX(b.created_at) FROM books b          WHERE b.library_id = l.id) AS last_import_at
+  `;
+
   listAll(): Library[] {
     return this.db
-      .prepare('SELECT id, name, description, created_at FROM libraries ORDER BY name ASC')
+      .prepare(`
+        SELECT l.id, l.name, l.description, l.created_at,
+               ${LibraryRepository.AGGREGATES}
+        FROM libraries l
+        ORDER BY l.name ASC
+      `)
       .all() as Library[];
   }
 
   listForUser(userId: string): Library[] {
     return this.db
       .prepare(`
-        SELECT l.id, l.name, l.description, l.created_at
+        SELECT l.id, l.name, l.description, l.created_at,
+               ${LibraryRepository.AGGREGATES}
         FROM libraries l
         INNER JOIN user_libraries ul ON ul.library_id = l.id
         WHERE ul.user_id = ?

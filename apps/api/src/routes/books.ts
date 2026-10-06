@@ -5,7 +5,7 @@ import os from 'node:os';
 import { pipeline } from 'node:stream/promises';
 import type { FastifyPluginAsync } from 'fastify';
 import { requireAuth } from '../middleware/auth.js';
-import { hasAccess, getAllowedLibraryIds } from '../acl.js';
+import { hasAccess, getAllowedLibraryIds, isDemoPrincipal } from '../acl.js';
 import { type BookFilters, BookRepository } from '../db/repositories/BookRepository.js';
 import { importBook, detectFormat } from '../services/importBook.js';
 
@@ -83,6 +83,7 @@ export const bookRoutes: FastifyPluginAsync = async (fastify) => {
         sort: query.sort as BookFilters['sort'],
         order: query.order as BookFilters['order'],
       },
+      request.user!.id,
     );
 
     reply.send({ data: result.books, total: result.total, limit, offset });
@@ -91,6 +92,12 @@ export const bookRoutes: FastifyPluginAsync = async (fastify) => {
   // Multipart upload
   fastify.post('/libraries/:libraryId/books', { preHandler: requireAuth }, async (request, reply) => {
     const { libraryId } = request.params as { libraryId: string };
+
+    // cuatro-portfolio ruling DR4: every Visitor shares the demo principal, so it never adds a file.
+    // Refused before the body is read, so nothing reaches disk or the duplicate check (DW-334).
+    if (isDemoPrincipal(request.user!.email)) {
+      return reply.code(403).send({ statusCode: 403, error: 'Forbidden', message: 'The demo account cannot upload.' });
+    }
 
     if (!hasAccess(fastify.db, request.user!.id, libraryId, request.user!.is_admin)) {
       return reply.code(403).send({ statusCode: 403, error: 'Forbidden', message: 'Access denied.' });
@@ -140,6 +147,10 @@ export const bookRoutes: FastifyPluginAsync = async (fastify) => {
     if (!book) return reply.code(404).send({ statusCode: 404, error: 'Not Found', message: 'Book not found.' });
     if (!request.user!.is_admin) {
       return reply.code(403).send({ statusCode: 403, error: 'Forbidden', message: 'Admin only.' });
+    }
+    // cuatro-portfolio Story 5.8: not across the demo scope's boundary either.
+    if (!hasAccess(fastify.db, request.user!.id, book.library_id, true)) {
+      return reply.code(404).send({ statusCode: 404, error: 'Not Found', message: 'Book not found.' });
     }
     repo.delete(id);
     await unlink(book.file_path).catch(() => {});

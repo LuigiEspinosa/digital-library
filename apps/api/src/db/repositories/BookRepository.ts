@@ -1,6 +1,11 @@
 import { nanoid } from 'nanoid';
 import type { Db } from '../connection.js';
-import type { Book, BookFormat, LibraryFilters } from '@digital-library/shared';
+import type {
+  Book,
+  BookFormat,
+  BookWithProgress,
+  LibraryFilters,
+} from '@digital-library/shared';
 import { sanitizeFtsQuery } from '../ftsSanitizer.js';
 
 interface DbBook {
@@ -22,6 +27,8 @@ interface DbBook {
   sha256: string | null;
   language: string | null;
   created_at: string;
+  // Only selected by findByLibrary's two row queries; absent on every other read.
+  progress_position?: string | null;
 }
 
 function toBook(row: DbBook): Book {
@@ -44,6 +51,10 @@ function toBook(row: DbBook): Book {
     language: row.language ?? undefined,
     created_at: row.created_at,
   };
+}
+
+function toBookWithProgress(row: DbBook): BookWithProgress {
+  return { ...toBook(row), progress_position: row.progress_position ?? null };
 }
 
 export interface CreateBookInput {
@@ -78,6 +89,11 @@ export interface BookFilters {
 
 const VALID_SORT = ['title', 'author', 'created_at', 'published_at'] as const;
 
+// Every format a book can actually be stored as. Used only to cap the comma-list
+// filter — no list of real formats can be longer than this, so anything past it is
+// a hand-crafted URL, not a user.
+const VALID_FORMATS = ['epub', 'pdf', 'cbz', 'cbr', 'images'] as const;
+
 export class BookRepository {
   constructor(private db: Db) {}
 
@@ -95,17 +111,45 @@ export class BookRepository {
     return row ? toBook(row) : null;
   }
 
+  /**
+   * The requesting user's stored position rides along on every row, so the browse
+   * grid can label reading progress without one request per tile.
+   *
+   * reading_progress's PRIMARY KEY (user_id, book_id) means at most one row per
+   * (user, book), so the LEFT JOIN cannot multiply rows.
+   */
   findByLibrary(
     libraryId: string,
     opts: { limit: number; offset: number },
     filters: BookFilters = {},
-  ): { books: Book[]; total: number } {
+    userId: string,
+  ): { books: BookWithProgress[]; total: number } {
     const conditions: string[] = ['b.library_id = ?'];
     const params: (string | number)[] = [libraryId];
 
+    // A comma-separated list so the UI's single COMIC segment can match cbz, cbr
+    // and images at once. One value still yields `IN (?)` and behaves exactly as
+    // the old `= ?` did, so bookmarked ?format=epub URLs are unaffected.
     if (filters.format) {
-      conditions.push('b.format = ?');
-      params.push(filters.format);
+      // Deduped and capped: each distinct comma count is a distinct statement for
+      // better-sqlite3 to prepare, and a long enough hand-crafted list would pass
+      // SQLITE_MAX_VARIABLE_NUMBER and throw out of prepare() as an opaque 500.
+      const formats = [
+        ...new Set(
+          filters.format
+            .split(',')
+            .map((f) => f.trim().toLowerCase())
+            .filter(Boolean),
+        ),
+      ].slice(0, VALID_FORMATS.length);
+
+      // A caller that asked to filter and named nothing usable (`?format=,`) gets
+      // zero rows, never the whole library — silently dropping the condition made
+      // an unfiltered list look like a filtered one.
+      conditions.push(
+        formats.length ? `b.format IN (${formats.map(() => '?').join(', ')})` : '0',
+      );
+      params.push(...formats);
     }
     if (filters.author) {
       conditions.push('b.author = ?');
@@ -127,6 +171,13 @@ export class BookRepository {
       params.push(...filters.tags);
     }
 
+    // better-sqlite3 binds `?` by position in the STATEMENT TEXT, and the join's
+    // rp.user_id = ? sits ahead of every WHERE placeholder — so userId leads the
+    // row queries' parameter lists. The COUNT queries do not carry the join and
+    // therefore keep their original text and parameters untouched.
+    const progressJoin =
+      'LEFT JOIN reading_progress rp ON rp.book_id = b.id AND rp.user_id = ?';
+
     const rawQ = filters.q?.trim() ?? '';
     if (rawQ.length > 0) {
       const ftsQuery = sanitizeFtsQuery(rawQ);
@@ -144,11 +195,11 @@ export class BookRepository {
 
       const rows = this.db
         .prepare(
-          `SELECT b.* FROM books b JOIN books_fts ON books_fts.rowid = b.rowid WHERE ${where} ORDER BY books_fts.rank LIMIT ? OFFSET ?`,
+          `SELECT b.*, rp.position AS progress_position FROM books b JOIN books_fts ON books_fts.rowid = b.rowid ${progressJoin} WHERE ${where} ORDER BY books_fts.rank LIMIT ? OFFSET ?`,
         )
-        .all(...ftsParams, opts.limit, opts.offset) as DbBook[];
+        .all(userId, ...ftsParams, opts.limit, opts.offset) as DbBook[];
 
-      return { books: rows.map(toBook), total: count };
+      return { books: rows.map(toBookWithProgress), total: count };
     }
 
     const where = conditions.join(' AND ');
@@ -164,11 +215,11 @@ export class BookRepository {
 
     const rows = this.db
       .prepare(
-        `SELECT b.* FROM books b WHERE ${where} ORDER BY b.${sortCol} ${orderDir} LIMIT ? OFFSET ?`,
+        `SELECT b.*, rp.position AS progress_position FROM books b ${progressJoin} WHERE ${where} ORDER BY b.${sortCol} ${orderDir} LIMIT ? OFFSET ?`,
       )
-      .all(...params, opts.limit, opts.offset) as DbBook[];
+      .all(userId, ...params, opts.limit, opts.offset) as DbBook[];
 
-    return { books: rows.map(toBook), total: count };
+    return { books: rows.map(toBookWithProgress), total: count };
   }
 
   findAll(

@@ -87,6 +87,10 @@ describe('Input', () => {
 		const block = container.querySelector('.error-block');
 		expect(block).not.toBeNull();
 		expect(block?.querySelector('.mono-kicker')?.textContent).toBe('ERROR');
+		// The size class, not just the text: 04-login.md #7 puts the ERROR kicker at
+		// 12px/1.2px, which is `ribbon`, not `sm` (1.1px). Nothing else in the repo
+		// pins it — the login route renders its own error block, never this one.
+		expect(block?.querySelector('.mono-kicker')?.classList.contains('ribbon')).toBe(true);
 		expect(block?.querySelector('.error-message')?.textContent).toContain('Incorrect email or password.');
 		expect(container.querySelector('input.field')?.getAttribute('aria-invalid')).toBe('true');
 	});

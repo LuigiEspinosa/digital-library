@@ -1,7 +1,7 @@
 import type { FastifyPluginAsync } from 'fastify';
 import { requireAuth } from '../middleware/auth.js';
 import { LibraryRepository } from '../db/repositories/LibraryRepository.js';
-import { getAllowedLibraryIds } from '../acl.js';
+import { getAllowedLibraryIds, inDemoScope } from '../acl.js';
 
 export const libraryRoutes: FastifyPluginAsync = async (fastify) => {
   const libs = new LibraryRepository(fastify.db);
@@ -9,7 +9,9 @@ export const libraryRoutes: FastifyPluginAsync = async (fastify) => {
   // List libraries the authenticated user can access
   fastify.get('/libraries', { preHandler: requireAuth }, async (request, reply) => {
     const user = request.user!;
-    const libraries = user.is_admin ? libs.listAll() : libs.listForUser(user.id);
+    const libraries = user.is_admin
+      ? libs.listAll().filter((l) => !inDemoScope(fastify.db, l.id))
+      : libs.listForUser(user.id);
     return reply.send({ data: libraries, total: libraries.length, limit: libraries.length, offset: 0 });
   });
 

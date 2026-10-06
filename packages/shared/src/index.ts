@@ -23,6 +23,18 @@ export interface Book {
   created_at: string;
 }
 
+/**
+ * A book as served by GET /api/libraries/:id/books — the base record plus the
+ * REQUESTING USER's stored position. Always present on that payload, which is
+ * why it is a separate type rather than an optional field on Book: findById,
+ * create and the /books list return Book without it.
+ *
+ * position is a CFI string for EPUB and a page-number string for PDF/comics.
+ */
+export interface BookWithProgress extends Book {
+  progress_position: string | null;
+}
+
 // ---- Library ----
 
 export interface Library {
@@ -30,6 +42,12 @@ export interface Library {
   name: string;
   description?: string;
   created_at: string;
+  // Present on list payloads (GET /api/libraries). Absent on findById/create/update,
+  // which return this same type — hence optional rather than required.
+  book_count?: number;
+  user_count?: number;
+  // MAX(books.created_at) for this library; null when the library has no books.
+  last_import_at?: string | null;
 }
 
 // ---- User ----

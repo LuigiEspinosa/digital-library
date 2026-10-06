@@ -267,6 +267,166 @@ describe('Book routes', () => {
     expect(res.json().total).toBe(1);
   });
 
+  // ---- GET /libraries/:id/books — per-user reading progress (story C.3) ----
+
+  async function upload(filename: string, content: string, cookie = adminCookie) {
+    const { body, contentType } = makeMultipartBody(filename, Buffer.from(content));
+    const res = await app.inject({
+      method: 'POST', url: `/api/libraries/${libraryId}/books`,
+      headers: { cookie, 'content-type': contentType },
+      body,
+    });
+    // Named here rather than left to blow up as `Cannot read properties of
+    // undefined (reading 'id')` in six tests at once with nothing naming the cause.
+    expect(res.statusCode).toBe(201);
+    return res.json().book.id as string;
+  }
+
+  function grantUserAccess() {
+    const row = getDb(app).prepare('SELECT * FROM users WHERE is_admin = 0').get() as any;
+    getDb(app).prepare('INSERT INTO user_libraries (user_id, library_id) VALUES (?, ?)').run(row.id, libraryId);
+  }
+
+  function listBooks(query = '', cookie = adminCookie) {
+    return app.inject({
+      method: 'GET', url: `/api/libraries/${libraryId}/books${query}`,
+      headers: { cookie },
+    });
+  }
+
+  test('GET /libraries/:id/books returns progress_position null when nothing is stored', async () => {
+    await upload('unread.epub', 'unread bytes');
+
+    const res = await listBooks();
+
+    expect(res.statusCode).toBe(200);
+    expect(res.json().data[0]).toHaveProperty('progress_position', null);
+  });
+
+  // The regression that matters: a join missing its `AND rp.user_id = ?` passes
+  // every other assertion in this file while leaking one reader's position to all.
+  test('GET /libraries/:id/books scopes progress to the requesting user', async () => {
+    const bookId = await upload('shared.pdf', 'pdf bytes');
+    grantUserAccess();
+
+    const put = await app.inject({
+      method: 'PUT', url: `/api/books/${bookId}/progress`,
+      headers: { cookie: adminCookie },
+      payload: { position: '121' },
+    });
+    expect(put.statusCode).toBe(204);
+
+    const mine = await listBooks();
+    expect(mine.json().data[0].progress_position).toBe('121');
+
+    const theirs = await listBooks('', userCookie);
+    expect(theirs.statusCode).toBe(200);
+    expect(theirs.json().data[0].progress_position).toBeNull();
+  });
+
+  test('the progress join does not multiply rows', async () => {
+    const first = await upload('one.epub', 'one bytes');
+    const second = await upload('two.epub', 'two bytes');
+
+    for (const id of [first, second]) {
+      await app.inject({
+        method: 'PUT', url: `/api/books/${id}/progress`,
+        headers: { cookie: adminCookie },
+        payload: { position: 'epubcfi(/6/4!/4/2)' },
+      });
+    }
+
+    const res = await listBooks();
+    expect(res.json().data).toHaveLength(2);
+    expect(res.json().total).toBe(2);
+  });
+
+  test('the format filter accepts a comma-separated list and a single value', async () => {
+    await upload('story.epub', 'epub bytes');
+    await upload('issue.cbz', 'cbz bytes');
+    await upload('annual.cbr', 'cbr bytes');
+
+    const comics = await listBooks('?format=cbz,cbr');
+    expect(comics.json().total).toBe(2);
+    expect([...comics.json().data].map((b: any) => b.format).sort()).toEqual(['cbr', 'cbz']);
+
+    // Bookmarked single-value URLs must behave exactly as they did before.
+    const epubs = await listBooks('?format=epub');
+    expect(epubs.json().total).toBe(1);
+    expect(epubs.json().data[0].format).toBe('epub');
+  });
+
+  // A caller that asked to filter and named nothing usable must get nothing back.
+  // Dropping the condition returned the WHOLE library while the UI still showed a
+  // filter as active — an unfiltered list wearing a filtered list's chrome.
+  test('a format filter naming nothing usable matches no books', async () => {
+    await upload('story.epub', 'epub bytes');
+
+    for (const query of ['?format=,', '?format=%20', '?format=,%20,']) {
+      const res = await listBooks(query);
+      expect(res.statusCode).toBe(200);
+      expect(res.json().total).toBe(0);
+      expect(res.json().data).toHaveLength(0);
+    }
+  });
+
+  // The FTS branch is a DIFFERENT prepared statement and needs its own assertion —
+  // the C.2 lesson, where listForUser was green while its sibling query was broken.
+  test('the FTS search path carries progress too', async () => {
+    const bookId = await upload('zeppelin.epub', 'zeppelin bytes');
+    await app.inject({
+      method: 'PUT', url: `/api/books/${bookId}/progress`,
+      headers: { cookie: adminCookie },
+      payload: { position: '42' },
+    });
+
+    const res = await listBooks('?q=zeppelin');
+
+    expect(res.statusCode).toBe(200);
+    expect(res.json().total).toBe(1);
+    expect(res.json().data[0].progress_position).toBe('42');
+  });
+
+  // Presence on the FTS path is not the regression that matters — SCOPING is, and
+  // it needs asserting on this statement too. The two branches share `progressJoin`
+  // today, which is exactly the coupling this test exists to outlive.
+  test('the FTS search path scopes progress to the requesting user', async () => {
+    const bookId = await upload('zeppelin.epub', 'zeppelin bytes');
+    grantUserAccess();
+
+    await app.inject({
+      method: 'PUT', url: `/api/books/${bookId}/progress`,
+      headers: { cookie: adminCookie },
+      payload: { position: '42' },
+    });
+
+    const theirs = await listBooks('?q=zeppelin', userCookie);
+
+    expect(theirs.statusCode).toBe(200);
+    expect(theirs.json().total).toBe(1);
+    expect(theirs.json().data[0].progress_position).toBeNull();
+  });
+
+  // Placeholder-order regression: better-sqlite3 binds by position in statement
+  // text, so a userId bound after the MATCH searches FTS5 for a user id — no
+  // error, just silently wrong rows.
+  test('search and format filter combine without disturbing the bind order', async () => {
+    const bookId = await upload('zeppelin.epub', 'zeppelin epub bytes');
+    await upload('zeppelin.cbz', 'zeppelin cbz bytes');
+    await app.inject({
+      method: 'PUT', url: `/api/books/${bookId}/progress`,
+      headers: { cookie: adminCookie },
+      payload: { position: '7' },
+    });
+
+    const res = await listBooks('?q=zeppelin&format=epub');
+
+    expect(res.statusCode).toBe(200);
+    expect(res.json().total).toBe(1);
+    expect(res.json().data[0].id).toBe(bookId);
+    expect(res.json().data[0].progress_position).toBe('7');
+  });
+
   test('GET /libraries/:id/books returns 403 without access', async () => {
     const res = await app.inject({
       method: 'GET', url: `/api/libraries/${libraryId}/books`,

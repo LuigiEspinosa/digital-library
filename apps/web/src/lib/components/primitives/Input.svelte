@@ -58,7 +58,7 @@
 	     "helperText when present and no error"). -->
 	{#if errorText}
 		<div class="error-block" id={describeId}>
-			<MonoKicker size="sm" tone="ink">ERROR</MonoKicker>
+			<MonoKicker size="ribbon" tone="ink">ERROR</MonoKicker>
 			<p class="error-message">{errorText}</p>
 		</div>
 	{:else if helperText}
