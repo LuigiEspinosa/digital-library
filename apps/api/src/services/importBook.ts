@@ -9,8 +9,8 @@ import { BookRepository } from '../db/repositories/BookRepository.js';
 import { extractMetadata } from './metadata.js';
 import type { Book, BookFormat } from '@digital-library/shared';
 
-const booksRoot = () => process.env.BOOKS_PATH ?? '/data/books';
-const coversRoot = () => process.env.COVERS_PATH ?? '/data/covers';
+export const booksRoot = () => process.env.BOOKS_PATH ?? '/data/books';
+export const coversRoot = () => process.env.COVERS_PATH ?? '/data/covers';
 
 const FORMAT_MAP: Record<string, BookFormat> = {
   epub: 'epub',

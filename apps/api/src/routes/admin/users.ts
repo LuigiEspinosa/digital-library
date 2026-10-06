@@ -1,6 +1,6 @@
 import type { FastifyPluginAsync } from "fastify";
 import { UserRepository } from "../../db/repositories/UserRepository.js";
-import { grantAccess, revokeAccess } from "../../acl.js";
+import { grantAccess, isDemoPrincipal, revokeAccess, ScopeError } from "../../acl.js";
 import { requireAdmin } from "../../middleware/auth.js";
 
 interface CreateUserBody {
@@ -46,6 +46,14 @@ export const adminUserRoutes: FastifyPluginAsync = async (fastify) => {
     async (request, reply) => {
       const { email, password, is_admin } = request.body;
 
+      if (is_admin && isDemoPrincipal(email)) {
+        return reply.code(400).send({
+          statusCode: 400,
+          error: 'Bad Request',
+          message: 'The demo principal cannot be an admin.',
+        });
+      }
+
       // Check for duplicate email
       if (users.findByEmail(email)) {
         return reply.code(409).send({
@@ -74,11 +82,21 @@ export const adminUserRoutes: FastifyPluginAsync = async (fastify) => {
         });
       }
 
-      if (!users.findById(userId)) {
+      const user = users.findById(userId);
+      if (!user) {
         return reply.code(404).send({
           statusCode: 404,
           error: 'Not Found',
           message: 'User not found',
+        });
+      }
+
+      // cuatro-portfolio Story 5.8: the demo principal cannot be deleted.
+      if (isDemoPrincipal(user.email)) {
+        return reply.code(403).send({
+          statusCode: 403,
+          error: 'Forbidden',
+          message: 'The demo principal cannot be deleted.',
         });
       }
 
@@ -116,7 +134,12 @@ export const adminUserRoutes: FastifyPluginAsync = async (fastify) => {
         });
       }
 
-      grantAccess(fastify.db, userId, libraryId);
+      try {
+        grantAccess(fastify.db, userId, libraryId);
+      } catch (err) {
+        if (!(err instanceof ScopeError)) throw err;
+        return reply.code(409).send({ statusCode: 409, error: 'Conflict', message: err.message });
+      }
       return reply.code(204).send();
     }
   );
@@ -126,7 +149,12 @@ export const adminUserRoutes: FastifyPluginAsync = async (fastify) => {
     '/users/:userId/libraries/:libraryId',
     async (request, reply) => {
       const { userId, libraryId } = request.params;
-      revokeAccess(fastify.db, userId, libraryId);
+      try {
+        revokeAccess(fastify.db, userId, libraryId);
+      } catch (err) {
+        if (!(err instanceof ScopeError)) throw err;
+        return reply.code(409).send({ statusCode: 409, error: 'Conflict', message: err.message });
+      }
       return reply.code(204).send();
     }
   );
