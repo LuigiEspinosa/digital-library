@@ -1,4 +1,5 @@
-import { readFileSync, readdirSync, statSync } from 'node:fs';
+import { mkdirSync, mkdtempSync, readFileSync, readdirSync, rmSync, statSync } from 'node:fs';
+import { tmpdir } from 'node:os';
 import path from 'node:path';
 import { describe, test, expect, beforeEach, afterEach } from 'vitest';
 import type { FastifyInstance } from 'fastify';
@@ -197,5 +198,99 @@ describe('without a demo principal account, nothing changes', () => {
     grantAccess(app.db, ids.reader, libs.demo);
     expect(hasAccess(app.db, ids.reader, libs.demo, false)).toBe(true);
     expect(users.findById(ids.demo)).toBeNull();
+  });
+});
+
+// Ruling DR4 (cuatro-portfolio ops/demo-principal.md, DW-333): every Visitor shares
+// the demo principal, so it adds no file. POST /api/libraries/:libraryId/books is
+// the one route that stores a file (covers are made inside it; the inbox watcher
+// takes no request), and it refuses the demo principal before reading the body.
+describe('the principal never uploads', () => {
+  let storage: string;
+
+  function multipart(filename: string, content: Buffer) {
+    const boundary = 'DemoBoundary';
+    return {
+      body: Buffer.concat([
+        Buffer.from(`--${boundary}\r\nContent-Disposition: form-data; name="file"; filename="${filename}"\r\nContent-Type: application/octet-stream\r\n\r\n`),
+        content,
+        Buffer.from(`\r\n--${boundary}--\r\n`),
+      ]),
+      contentType: `multipart/form-data; boundary=${boundary}`,
+    };
+  }
+
+  function upload(cookie: string, libraryId: string, content: Buffer) {
+    const { body, contentType } = multipart('upload.epub', content);
+    return app.inject({
+      method: 'POST',
+      url: `/api/libraries/${libraryId}/books`,
+      headers: { cookie, 'content-type': contentType },
+      body,
+    });
+  }
+
+  const stored = () => readdirSync(storage, { recursive: true }).length;
+  const rows = () => (app.db.prepare('SELECT COUNT(*) AS n FROM books').get() as { n: number }).n;
+
+  beforeEach(() => {
+    storage = mkdtempSync(path.join(tmpdir(), 'dl-demo-upload-'));
+    mkdirSync(path.join(storage, 'books'));
+    mkdirSync(path.join(storage, 'covers'));
+    process.env.BOOKS_PATH = path.join(storage, 'books');
+    process.env.COVERS_PATH = path.join(storage, 'covers');
+  });
+
+  afterEach(() => {
+    delete process.env.BOOKS_PATH;
+    delete process.env.COVERS_PATH;
+    rmSync(storage, { recursive: true, force: true });
+  });
+
+  test('an upload to its own library answers 403 and writes nothing to disk or the database', async () => {
+    const before = { rows: rows(), stored: stored() };
+    const res = await upload(cookies.demo, libs.demo, Buffer.from('a Visitor file'));
+    expect(res.statusCode).toBe(403);
+    expect({ rows: rows(), stored: stored() }).toEqual(before);
+    expect(app.db.prepare('SELECT 1 FROM books WHERE library_id = ? AND id <> ?').get(libs.demo, books.demo)).toBeUndefined();
+  });
+
+  test('it is refused before the body is read: a request with no file answers 403, not 400', async () => {
+    const res = await app.inject({
+      method: 'POST',
+      url: `/api/libraries/${libs.demo}/books`,
+      headers: { cookie: cookies.demo, 'content-type': 'multipart/form-data; boundary=empty' },
+    });
+    expect(res.statusCode).toBe(403);
+    const other = await app.inject({
+      method: 'POST',
+      url: `/api/libraries/${libs.operator}/books`,
+      headers: { cookie: cookies.reader, 'content-type': 'multipart/form-data; boundary=empty' },
+    });
+    expect(other.statusCode).toBe(400);
+  });
+
+  test("a file the Operator holds answers 403 without the Operator's book row (DW-334)", async () => {
+    const content = Buffer.from('a file the Operator holds');
+    const own = await upload(cookies.admin, libs.operator, content);
+    expect(own.statusCode).toBe(201);
+    const held = own.json().book;
+
+    const res = await upload(cookies.demo, libs.demo, content);
+    expect(res.statusCode).toBe(403);
+    expect(res.json().book).toBeUndefined();
+    expect(res.body).not.toContain(held.id);
+    expect(res.body).not.toContain(libs.operator);
+  });
+
+  test('the Operator and every other user upload as before', async () => {
+    const admin = await upload(cookies.admin, libs.operator, Buffer.from('the Operator file'));
+    expect(admin.statusCode).toBe(201);
+    expect(admin.json().book.library_id).toBe(libs.operator);
+    expect(readFileSync(admin.json().book.file_path, 'utf8')).toBe('the Operator file');
+
+    const reader = await upload(cookies.reader, libs.operator, Buffer.from('a reader file'));
+    expect(reader.statusCode).toBe(201);
+    expect(rows()).toBe(4);
   });
 });

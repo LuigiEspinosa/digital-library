@@ -5,7 +5,7 @@ import os from 'node:os';
 import { pipeline } from 'node:stream/promises';
 import type { FastifyPluginAsync } from 'fastify';
 import { requireAuth } from '../middleware/auth.js';
-import { hasAccess, getAllowedLibraryIds } from '../acl.js';
+import { hasAccess, getAllowedLibraryIds, isDemoPrincipal } from '../acl.js';
 import { type BookFilters, BookRepository } from '../db/repositories/BookRepository.js';
 import { importBook, detectFormat } from '../services/importBook.js';
 
@@ -92,6 +92,12 @@ export const bookRoutes: FastifyPluginAsync = async (fastify) => {
   // Multipart upload
   fastify.post('/libraries/:libraryId/books', { preHandler: requireAuth }, async (request, reply) => {
     const { libraryId } = request.params as { libraryId: string };
+
+    // cuatro-portfolio ruling DR4: every Visitor shares the demo principal, so it never adds a file.
+    // Refused before the body is read, so nothing reaches disk or the duplicate check (DW-334).
+    if (isDemoPrincipal(request.user!.email)) {
+      return reply.code(403).send({ statusCode: 403, error: 'Forbidden', message: 'The demo account cannot upload.' });
+    }
 
     if (!hasAccess(fastify.db, request.user!.id, libraryId, request.user!.is_admin)) {
       return reply.code(403).send({ statusCode: 403, error: 'Forbidden', message: 'Access denied.' });
