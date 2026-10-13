@@ -4,6 +4,10 @@
 @import '../lib/cuatro-contracts/tokens.css';
 @import '../lib/cuatro-contracts/fonts.css';
 
+/* Tailwind mints a utility from any word in a scanned file, so "shadow" and "ring" in a
+   comment would ship .shadow and .ring (F-7). Neither is used as a class. */
+@source not inline("shadow ring");
+
 /* Theme keys read the contract's roles directly. A theme key never reads its own name
    (`--font-display: var(--font-display)` resolved only because an unlayered :root rule won). */
 @theme inline {
