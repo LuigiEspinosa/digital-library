@@ -176,14 +176,36 @@ pnpm test
 pnpm typecheck
 ```
 
-## Required Secrets (GitHub Actions)
+## Deploying to library.cuatro.dev
 
-| Secret           | Description              |
-| ---------------- | ------------------------ |
-| `SERVER_HOST`    | VPS IP address           |
-| `SERVER_USER`    | SSH username             |
-| `SERVER_SSH_KEY` | Private SSH key contents |
-| `SERVER_PORT`    | SSH port (usually 22)    |
+No workflow deploys this repository. `library.cuatro.dev` runs on the Cuatro estate's box from the checkout at
+`/home/deploy/digital-library`, which tracks `main`, and is redeployed by hand after a merge to `main`. The
+`Test & Deploy` workflow's `deploy` job, which SSHed into a VPS and had failed on every push to `main` since
+2026-05-29, was removed by the Operator's ruling of 2026-10-12; the `Test` workflow and `CI` still run the suite.
+
+This is the standing redeploy. On the box as `deploy`, from a file under `set -euo pipefail` (never piped
+into `ssh` over stdin), in `/home/deploy/digital-library`:
+
+```bash
+git fetch origin
+git reset --hard origin/main
+git log -1 --format='%H %s'
+docker compose up -d --build
+docker compose ps
+```
+
+`~/library-redeploy.sh` on the box is recorded as running the fetch, the reset and the build (Anchor DW-185,
+DW-187), then a smoke step. Then check that `api` and `web` report `healthy` in
+`docker compose ps`, and from outside the box that `https://library.cuatro.dev/` answers 302, `/login` 200 and
+`/api/health` 200 (the readings of the 2026-10-06 redeploy). That smoke step exits 60 on the
+box's Origin CA certificate while the deploy is good (Anchor DW-338).
+
+- Never run `git clean` in that checkout: the untracked `docker-compose.override.yml` there puts `api` and
+  `web` on the network the estate's Traefik reaches them on, and removing it takes the site off the air
+  (Anchor DW-187).
+- The images build on the box (Anchor DW-185), so a redeploy costs the box a build.
+- To roll back, `git reset --hard <previous main commit>` and `docker compose up -d --build` again.
+- A change to these steps is made here and in the box's script together.
 
 ## Build Phases
 
