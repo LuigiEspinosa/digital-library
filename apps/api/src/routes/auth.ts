@@ -1,6 +1,7 @@
 import type { FastifyPluginAsync } from 'fastify';
 import { UserRepository } from '../db/repositories/UserRepository.js';
-import { requireAuth } from '../middleware/auth.js';
+import { DEMO_ADMIN_REFUSED, requireAuth } from '../middleware/auth.js';
+import { isDemoPrincipal } from '../acl.js';
 import {
   createSession,
   invalidateSession,
@@ -41,6 +42,11 @@ export const authRoutes: FastifyPluginAsync = async (fastify) => {
           error: 'Unauthorized',
           message: 'Invalid email or password',
         });
+      }
+
+      // No session is minted for a demo account with is_admin set by hand (m13).
+      if (user.is_admin && isDemoPrincipal(user.email)) {
+        return reply.code(403).send(DEMO_ADMIN_REFUSED);
       }
 
       const session = createSession(fastify.db, user.id);
