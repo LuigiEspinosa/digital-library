@@ -5,6 +5,13 @@ import {
   blankCookieOptions,
   COOKIE_NAME,
 } from '../auth/session.js';
+import { isDemoPrincipal } from '../acl.js';
+
+export const DEMO_ADMIN_REFUSED = {
+  statusCode: 403,
+  error: 'Forbidden',
+  message: 'The demo principal cannot be an admin.',
+} as const;
 
 /**
  * Validates the session cookie on every protected request.
@@ -36,6 +43,12 @@ export const requireAuth = async (
       error: 'Unauthorized',
       message: 'Session expired or invalid',
     });
+  }
+
+  // The demo principal is never an admin (Epic 5 retrospective m13): an is_admin set
+  // by hand is refused here, on every authenticated route, before any handler runs.
+  if (user.is_admin && isDemoPrincipal(user.email)) {
+    return reply.code(403).send(DEMO_ADMIN_REFUSED);
   }
 
   // If the session was silently extended (past half-life), refresh the cookie

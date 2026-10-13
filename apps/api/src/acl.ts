@@ -14,21 +14,31 @@ export function isDemoPrincipal(email: unknown): boolean {
   return typeof email === 'string' && email.trim().toLowerCase() === DEMO_PRINCIPAL;
 }
 
-function demoUserId(db: Db): string | undefined {
-  const row = db.prepare('SELECT id FROM users WHERE email = ?').get(DEMO_PRINCIPAL) as
-    | { id: string }
-    | undefined;
-  return row?.id;
+// The one way a stored email is recognised, in SQL: trimmed and lowercased, as
+// isDemoPrincipal compares it, so a row written by hand in another casing is still
+// the demo principal (Epic 5 retrospective m13). SQLite's lower() and trim() fold
+// only ASCII case and spaces, which is all the address holds.
+const DEMO_EMAIL = 'lower(trim(email)) = ?';
+
+/** Every account that is the demo principal: one, or none while demo access is off. */
+export function demoAccounts(db: Db): { id: string; is_admin: boolean }[] {
+  const rows = db.prepare(`SELECT id, is_admin FROM users WHERE ${DEMO_EMAIL}`).all(DEMO_PRINCIPAL) as {
+    id: string;
+    is_admin: number;
+  }[];
+  return rows.map((r) => ({ id: r.id, is_admin: r.is_admin === 1 }));
+}
+
+function isDemoUser(db: Db, userId: string): boolean {
+  return db.prepare(`SELECT 1 FROM users WHERE id = ? AND ${DEMO_EMAIL}`).get(userId, DEMO_PRINCIPAL) !== undefined;
 }
 
 /** True when the library is in the demo principal's scope. */
 export function inDemoScope(db: Db, libraryId: string): boolean {
-  const demo = demoUserId(db);
-  if (demo === undefined) return false;
   return (
     db
-      .prepare('SELECT 1 FROM user_libraries WHERE user_id = ? AND library_id = ?')
-      .get(demo, libraryId) !== undefined
+      .prepare(`SELECT 1 FROM user_libraries WHERE library_id = ? AND user_id IN (SELECT id FROM users WHERE ${DEMO_EMAIL})`)
+      .get(libraryId, DEMO_PRINCIPAL) !== undefined
   );
 }
 
@@ -36,7 +46,8 @@ export function inDemoScope(db: Db, libraryId: string): boolean {
  * Returns true if the user has access to the library.
  * Admin users bypass all ACL checks, except the scope boundary: no one reaches
  * across it, so the Operator never reaches the demo scope and the demo
- * principal never reaches anything else.
+ * principal never reaches anything else. The demo principal never takes the
+ * admin bypass, even with is_admin set by hand.
  */
 export function hasAccess(
   db: Db,
@@ -44,8 +55,9 @@ export function hasAccess(
   libraryId: string,
   isAdmin: boolean
 ): boolean {
-  if ((userId === demoUserId(db)) !== inDemoScope(db, libraryId)) return false;
-  if (isAdmin) return true;
+  const demo = isDemoUser(db, userId);
+  if (demo !== inDemoScope(db, libraryId)) return false;
+  if (isAdmin && !demo) return true;
 
   const row = db
     .prepare('SELECT 1 FROM user_libraries WHERE user_id = ? AND library_id = ?')
@@ -56,14 +68,15 @@ export function hasAccess(
 
 /**
  * Returns all library IDs the user has access to.
- * Admins get every library.
+ * Admins get every library outside the demo scope; the demo principal is never
+ * treated as an admin.
  */
 export function getAllowedLibraryIds(
   db: Db,
   userId: string,
   isAdmin: boolean
 ): string[] {
-  if (isAdmin) {
+  if (isAdmin && !isDemoUser(db, userId)) {
     const rows = db
       .prepare('SELECT id FROM libraries')
       .all() as { id: string }[];
@@ -90,8 +103,7 @@ export function grantAccess(
   userId: string,
   libraryId: string
 ): void {
-  const demo = demoUserId(db);
-  if (userId === demo) {
+  if (isDemoUser(db, userId)) {
     const touched = db
       .prepare(`
         SELECT 1 FROM user_libraries WHERE library_id = ? AND user_id <> ?
@@ -120,7 +132,7 @@ export function revokeAccess(
   userId: string,
   libraryId: string
 ): void {
-  if (userId === demoUserId(db) && inDemoScope(db, libraryId)) {
+  if (isDemoUser(db, userId) && inDemoScope(db, libraryId)) {
     throw new ScopeError('A library leaves the demo scope only by being deleted.');
   }
   db.prepare(
