@@ -69,7 +69,8 @@ describe('the floor, read off each source', () => {
 	test.each(FLOOR)('%s: no ground on a control, no shadow, no gradient, square, ring never removed', (p) => {
 		const css = styleOf(p);
 		for (const m of css.matchAll(/background(?:-color)?\s*:\s*([^;}]+)/g)) {
-			expect(['transparent', 'none', 'var(--token-bg)'], `${p}: background ${m[1]}`).toContain(m[1].trim());
+			// var(--token-text) is § 5's 4px square status dot, never a control's ground.
+			expect(['transparent', 'none', 'var(--token-bg)', 'var(--token-text)'], `${p}: background ${m[1]}`).toContain(m[1].trim());
 		}
 		expect(css).not.toMatch(/box-shadow|gradient\(/);
 		for (const m of css.matchAll(/border-radius\s*:\s*([^;}]+)/g)) expect(['0', 'var(--r-none)']).toContain(m[1].trim());

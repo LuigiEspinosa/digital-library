@@ -426,8 +426,12 @@
 							<p class="author">by {book.author}</p>
 						{/if}
 
-						<p class="progress">
-							<MonoKicker size="md" tone="caption">{progressLabel(book)}</MonoKicker>
+						<!-- RESTYLE-SPEC.md § 5: the reading state is told by structure as well as by
+						     its word. Unread is a dashed border, Reading a solid one, Finished a solid
+						     one with the 4px square. -->
+						{@const progress = progressLabel(book)}
+						<p class="progress" class:unread={progress === 'Unread'} class:finished={progress === 'Finished'}>
+							<MonoKicker size="md" tone="ink">{progress}</MonoKicker>
 						</p>
 
 						{#if isAdmin}
@@ -737,7 +741,28 @@
 	}
 
 	.progress {
+		display: inline-flex;
+		align-items: center;
+		align-self: flex-start;
+		gap: var(--s-2xs);
 		margin: var(--s-2xs) 0 0;
+		padding: var(--s-2xs) var(--s-xs);
+		border: var(--stroke-boundary) solid var(--token-border-interactive);
+		border-radius: var(--r-none);
+	}
+
+	.progress.unread {
+		border-style: dashed;
+	}
+
+	/* The 4px square at --r-none, in the text's colour: the one ground in the system
+	   that is a mark rather than a surface (Story 8.1's .ct-dot). */
+	.progress.finished::before {
+		content: '';
+		flex: none;
+		width: var(--s-2xs);
+		height: var(--s-2xs);
+		background-color: var(--token-text);
 	}
 
 	.tile-remove {
