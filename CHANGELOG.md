@@ -8,6 +8,7 @@
 
 ### Removed
 
+- The `Test & Deploy` workflow's `deploy` job, which SSHed into a VPS and failed on every push to `main` since 2026-05-29 (Operator ruling 2026-10-12). The workflow is now `Test` (`.github/workflows/test.yml`) with its test job unchanged, and library.cuatro.dev is redeployed by hand: README, Deploying to library.cuatro.dev.
 - Temporary dev-only `/__design` smoke route (story 01.A.4), used to verify the WIRED token layer in isolation. Removed at the close of Epic 01.
 
 ## [0.8.0] - Phase 8: PDF Reader
