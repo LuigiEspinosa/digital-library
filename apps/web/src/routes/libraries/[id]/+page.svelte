@@ -397,6 +397,7 @@
 			<div class="grid">
 				{#each data.books as book (book.id)}
 					{@const year = publicationYear(book.published_at)}
+					{@const progress = progressLabel(book)}
 					<article class="tile">
 						<!-- tabindex/aria-hidden: the title link below is the real one. Two
 						     links to the same href would be two tab stops and two identical
@@ -429,7 +430,6 @@
 						<!-- RESTYLE-SPEC.md § 5: the reading state is told by structure as well as by
 						     its word. Unread is a dashed border, Reading a solid one, Finished a solid
 						     one with the 4px square. -->
-						{@const progress = progressLabel(book)}
 						<p class="progress" class:unread={progress === 'Unread'} class:finished={progress === 'Finished'}>
 							<MonoKicker size="md" tone="ink">{progress}</MonoKicker>
 						</p>

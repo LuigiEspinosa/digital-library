@@ -181,6 +181,19 @@ describe('/libraries/[id] — the grid', () => {
 		const labels = [...container.querySelectorAll('.progress')].map((p) => p.textContent?.trim());
 		expect(labels).toEqual(['Unread', 'Reading', 'Reading · 42%', 'Finished']);
 	});
+
+	// RESTYLE-SPEC.md § 5: each reading state differs from its neighbour by structure, so
+	// it survives greyscale with the word masked (F-9): dashed, solid, solid with the dot.
+	test('marks each reading state structurally, not by its word alone', () => {
+		const books = [
+			book({ id: 'a', progress_position: null }),
+			book({ id: 'b', format: 'epub', progress_position: 'epubcfi(/6/14!/4/2)' }),
+			book({ id: 'd', format: 'pdf', page_count: 288, progress_position: '288' })
+		];
+		const { container } = renderPage({ books, total: 3 });
+		const marks = [...container.querySelectorAll('.progress')].map((p) => [p.classList.contains('unread'), p.classList.contains('finished')]);
+		expect(marks).toEqual([[true, false], [false, false], [false, true]]);
+	});
 });
 
 describe('/libraries/[id] — filter strip and result bar', () => {
