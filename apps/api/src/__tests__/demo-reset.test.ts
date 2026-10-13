@@ -228,6 +228,29 @@ describe('the reset', () => {
     expect(dump()).toEqual(before);
   });
 
+  // Epic 5 retrospective m13: accounts the application would never create are refused at use.
+  test('recognises a demo account written by hand in another casing', async () => {
+    app.db.prepare('DELETE FROM users WHERE id = ?').run(ids.demo);
+    app.db.prepare("INSERT INTO users (id, email, hashed_password) VALUES ('by-hand', 'DEMO@cuatro.dev ', 'x')").run();
+    expect(await resetDemoScope(app.db, roots)).toEqual({ status: 'reset', rows: 2 + DEMO_BOOKS.length });
+    expect(app.db.prepare('SELECT user_id FROM user_libraries WHERE library_id = ?').all(DEMO_LIBRARY.id)).toEqual([{ user_id: 'by-hand' }]);
+  });
+
+  test('refuses, changing nothing, when the demo account is an admin', async () => {
+    await resetDemoScope(app.db, roots);
+    app.db.prepare('UPDATE users SET is_admin = 1 WHERE id = ?').run(ids.demo);
+    const before = dump();
+    await expect(resetDemoScope(app.db, roots)).rejects.toThrow('the demo principal is an admin');
+    expect(dump()).toEqual(before);
+  });
+
+  test('refuses, changing nothing, when more than one account is the demo principal', async () => {
+    app.db.prepare("INSERT INTO users (id, email, hashed_password) VALUES ('twin', ' Demo@cuatro.dev', 'x')").run();
+    const before = dump();
+    await expect(resetDemoScope(app.db, roots)).rejects.toThrow('more than one account is the demo principal');
+    expect(dump()).toEqual(before);
+  });
+
   test('refuses, changing nothing, when the demo scope holds a library it did not create', async () => {
     await resetDemoScope(app.db, roots);
     await visit();
@@ -309,6 +332,15 @@ describe('the command', () => {
     const { out, streams } = capture();
     expect(await main(...streams)).toBe(0);
     expect(out).toEqual(['demo:reset digital-library skipped: the demo principal is absent\n']);
+  });
+
+  test('prints one failed line and exits 1 for an admin demo account', async () => {
+    app.db.prepare('UPDATE users SET is_admin = 1 WHERE id = ?').run(ids.demo);
+    vi.stubEnv('DATABASE_PATH', dbFile);
+    const { out, err, streams } = capture();
+    expect(await main(...streams)).toBe(1);
+    expect(out).toEqual([]);
+    expect(err).toEqual(['demo:reset digital-library failed: the demo principal is an admin\n']);
   });
 
   test('prints one failed line, quoting no row, exits 1, and creates no database where there is none', async () => {

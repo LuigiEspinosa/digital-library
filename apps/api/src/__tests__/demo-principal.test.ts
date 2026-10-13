@@ -6,7 +6,7 @@ import type { FastifyInstance } from 'fastify';
 import { nanoid } from 'nanoid';
 import { build } from '../app';
 import { UserRepository } from '../db/repositories/UserRepository';
-import { DEMO_PRINCIPAL, getAllowedLibraryIds, grantAccess, hasAccess, inDemoScope, isDemoPrincipal, revokeAccess, ScopeError } from '../acl';
+import { DEMO_PRINCIPAL, demoAccounts, getAllowedLibraryIds, grantAccess, hasAccess, inDemoScope, isDemoPrincipal, revokeAccess, ScopeError } from '../acl';
 
 // The demo principal contract in digital-library (cuatro-portfolio Story 5.8,
 // AD-13, ops/demo-principal.md there): its ownership scope is the libraries it
@@ -292,5 +292,56 @@ describe('the principal never uploads', () => {
     const reader = await upload(cookies.reader, libs.operator, Buffer.from('a reader file'));
     expect(reader.statusCode).toBe(201);
     expect(rows()).toBe(4);
+  });
+});
+
+// Epic 5 retrospective m13: the principal is recognised one way, trimmed and
+// lowercased wherever it is looked up, and a demo account with is_admin set by hand
+// (the application never creates one) is refused wherever it is used.
+describe('the principal is recognised one way, and an admin demo account is refused at use', () => {
+  test('a row written by hand in another casing, with spaces, is the demo principal for the ACL', () => {
+    app.db.prepare('DELETE FROM users WHERE id = ?').run(ids.demo);
+    app.db.prepare("INSERT INTO users (id, email, hashed_password) VALUES ('by-hand', ' Demo@Cuatro.DEV ', 'x')").run();
+    app.db.prepare("INSERT INTO user_libraries (user_id, library_id) VALUES ('by-hand', ?)").run(libs.demo);
+    expect(demoAccounts(app.db)).toEqual([{ id: 'by-hand', is_admin: false }]);
+    expect(inDemoScope(app.db, libs.demo)).toBe(true);
+    expect(hasAccess(app.db, ids.admin, libs.demo, true)).toBe(false);
+    expect(hasAccess(app.db, 'by-hand', libs.operator, false)).toBe(false);
+    expect(getAllowedLibraryIds(app.db, ids.admin, true)).toEqual([libs.operator]);
+    expect(() => grantAccess(app.db, ids.reader, libs.demo)).toThrow(ScopeError);
+    expect(() => revokeAccess(app.db, 'by-hand', libs.demo)).toThrow(ScopeError);
+  });
+
+  test('an admin demo account answers 403 at sign-in and mints no session', async () => {
+    app.db.prepare('DELETE FROM sessions WHERE user_id = ?').run(ids.demo);
+    app.db.prepare('UPDATE users SET is_admin = 1 WHERE id = ?').run(ids.demo);
+    const res = await app.inject({ method: 'POST', url: '/api/auth/login', payload: { email: DEMO_PRINCIPAL, password: 'demopass' } });
+    expect(res.statusCode).toBe(403);
+    expect(res.headers['set-cookie']).toBeUndefined();
+    expect(app.db.prepare('SELECT COUNT(*) AS n FROM sessions WHERE user_id = ?').get(ids.demo)).toEqual({ n: 0 });
+  });
+
+  test("an existing session answers 403 on every authenticated route once is_admin is set, the admin routes included", async () => {
+    app.db.prepare('UPDATE users SET is_admin = 1 WHERE id = ?').run(ids.demo);
+    for (const [method, url] of [
+      ['GET', '/api/auth/me'],
+      ['GET', '/api/books'],
+      ['GET', `/api/books/${books.operator}`],
+      ['GET', `/api/books/${books.demo}`],
+      ['GET', '/api/admin/users'],
+    ] as const) {
+      const res = await app.inject({ method, url, headers: { cookie: cookies.demo } });
+      expect(res.statusCode, url).toBe(403);
+      expect(res.json().message, url).toBe('The demo principal cannot be an admin.');
+    }
+    // The Operator's administrator is served as before.
+    const admin = await app.inject({ method: 'GET', url: '/api/admin/users', headers: { cookie: cookies.admin } });
+    expect(admin.statusCode).toBe(200);
+  });
+
+  test('the ACL never gives the demo principal the admin bypass', () => {
+    expect(hasAccess(app.db, ids.demo, libs.operator, true)).toBe(false);
+    expect(hasAccess(app.db, ids.demo, libs.demo, true)).toBe(true);
+    expect(getAllowedLibraryIds(app.db, ids.demo, true)).toEqual([libs.demo]);
   });
 });

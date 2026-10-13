@@ -3,7 +3,7 @@ import { existsSync } from 'node:fs';
 import { mkdir, rm, unlink, writeFile } from 'node:fs/promises';
 import path from 'node:path';
 import { pathToFileURL } from 'node:url';
-import { DEMO_PRINCIPAL } from './acl.js';
+import { demoAccounts } from './acl.js';
 import { createDb, type Db } from './db/connection.js';
 import { DEMO_BOOKS, DEMO_LIBRARY, demoPdf } from './demo-fixture.js';
 import { booksRoot, coversRoot } from './services/importBook.js';
@@ -47,8 +47,13 @@ const inside = (dir: string, file: string) => {
 };
 
 export async function resetDemoScope(db: Db, roots: Roots = { books: booksRoot(), covers: coversRoot() }): Promise<ResetOutcome> {
-  const demo = db.prepare('SELECT id FROM users WHERE email = ?').get(DEMO_PRINCIPAL) as { id: string } | undefined;
-  if (!demo) return { status: 'skipped', reason: 'the demo principal is absent' };
+  const accounts = demoAccounts(db);
+  if (accounts.length === 0) return { status: 'skipped', reason: 'the demo principal is absent' };
+  // Refused at use (Epic 5 retrospective m13): accounts written by hand that the
+  // application would never create.
+  if (accounts.length > 1) throw new ResetRefused('more than one account is the demo principal');
+  if (accounts[0].is_admin) throw new ResetRefused('the demo principal is an admin');
+  const demo = accounts[0];
 
   const held = (db.prepare('SELECT library_id FROM user_libraries WHERE user_id = ?').all(demo.id) as { library_id: string }[])
     .map((r) => r.library_id);
