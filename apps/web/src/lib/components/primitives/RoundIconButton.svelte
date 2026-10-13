@@ -103,49 +103,36 @@
 </button>
 
 <style>
-	/* The ONE sanctioned non-zero radius (DESIGN.md §5 — 50% only on round icon
-	   buttons): the single circular shape on a logged-in page, the inverse of every
-	   square sibling. box-sizing:border-box holds the outer box at 40px whether the
-	   border is 1px (rest) or 2px (active). transition is color ONLY — the icon
-	   recolors on hover, nothing else moves: no fill flip, no lift, no shadow (the
-	   epic AC overrides the reference .icon-btn's black-fill hover; DESIGN.md §6/§7). */
+	/* A § 1 Control holding a glyph: square, unfilled, the --tap box on both axes, the
+	   border colour its only transition. The spec has no glyph for an icon-only control
+	   (Story 8.1's finding 3), so the inline stroke icon stays inside the box. */
 	.round-icon-btn {
 		display: inline-flex;
 		align-items: center;
 		justify-content: center;
 		box-sizing: border-box;
-		width: 40px;
-		height: 40px;
+		min-width: var(--tap);
+		min-height: var(--tap);
 		padding: 0;
-		border: 1px solid var(--caption-gray);
-		border-radius: 50%;
+		border: var(--stroke-boundary) solid var(--token-border-interactive);
+		border-radius: var(--r-none);
 		background: transparent;
-		color: var(--page-ink);
+		color: var(--token-text);
 		cursor: pointer;
-		transition: color 150ms linear;
+		transition: border-color var(--dur-micro) var(--ease-toggle);
 	}
 
-	/* Settings promotes the account button to a 2px ink ring. */
 	.round-icon-btn.active {
-		border: 2px solid var(--wired-black);
+		border-color: var(--token-text);
 	}
 
-	/* Hover recolors the currentColor icon stroke to Link Blue — no background, no
-	   border-color change, no transform (the AC deviation from the reference fill). */
 	.round-icon-btn:hover {
-		color: var(--link-blue);
+		border-color: var(--token-accent-hover);
 	}
 
 	.round-icon-btn svg {
 		display: block;
 		width: 16px;
 		height: 16px;
-	}
-
-	/* The editorial double-rule focus shared by Button/Input/AppNav/Breadcrumb
-	   (DESIGN.md §4): a 2px outset, no glow. */
-	.round-icon-btn:focus-visible {
-		outline: 2px solid var(--wired-black);
-		outline-offset: 2px;
 	}
 </style>

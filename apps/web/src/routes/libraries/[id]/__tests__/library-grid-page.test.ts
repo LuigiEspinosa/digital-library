@@ -148,14 +148,24 @@ describe('/libraries/[id] — the grid', () => {
 		expect(container.querySelector('.fallback')).toBeNull();
 	});
 
-	test('a book with no cover renders the fallback block and no image', () => {
+	// RESTYLE-SPEC.md § 10: a missing image is the bordered box, empty, with the name
+	// beneath it. Never a placeholder graphic, an icon or text inside the box.
+	test('a book with no cover renders the empty box and the name beneath it', () => {
 		const { container } = renderPage({ books: [book()], total: 1 });
 
 		const fallback = container.querySelector('.cover.fallback');
 		expect(fallback).not.toBeNull();
 		expect(container.querySelector('img')).toBeNull();
-		expect(fallback?.textContent).toContain('EPUB · N° 01');
-		expect(fallback?.querySelector('.fallback-title')?.textContent).toBe('Exhalation');
+		expect(fallback?.childElementCount).toBe(0);
+		expect(fallback?.textContent?.trim()).toBe('');
+		expect(container.querySelector('a.title')?.textContent).toBe('Exhalation');
+	});
+
+	test('a cover image reserves its space with an intrinsic width and height', () => {
+		const { container } = renderPage({ books: [book({ coverUrl: '/files/covers/x.jpg' })], total: 1 });
+		const img = container.querySelector('img');
+		expect(img?.getAttribute('width')).toBe('200');
+		expect(img?.getAttribute('height')).toBe('300');
 	});
 
 	// The four rows of AC3 that a reader can actually reach today, on one page.
@@ -552,12 +562,12 @@ describe('/libraries/[id] source guard', () => {
 		).toBeNull();
 	});
 
-	// Derived from tokens.css rather than hand-copied: a hardcoded subset false-reds
-	// the legitimate --space-1/4/12/40/48 the design system already defines, and a
-	// false red is what gets a guard deleted rather than fixed.
-	test('every var(--…) names a token defined in tokens.css', () => {
+	// Derived from the vendored contract rather than hand-copied (Story 8.2): every
+	// custom property this route reads is a contract role or scale, never the raw
+	// --c-* palette and never a name of its own.
+	test('every var(--…) names a token the vendored contract defines', () => {
 		const tokensCss = readFileSync(
-			join(dirname(fileURLToPath(import.meta.url)), '../../../../lib/tokens.css'),
+			join(dirname(fileURLToPath(import.meta.url)), '../../../../lib/cuatro-contracts/tokens.css'),
 			'utf8'
 		);
 		const defined = [...tokensCss.matchAll(/^\s*(--[\w-]+)\s*:/gm)].map((m) => m[1]);
@@ -567,7 +577,10 @@ describe('/libraries/[id] source guard', () => {
 		// Guard the guard: an off-palette rewrite that empties the scan must fail,
 		// not pass vacuously.
 		expect(used.length).toBeGreaterThan(0);
-		for (const t of used) expect(defined).toContain(t);
+		for (const t of used) {
+			expect(defined).toContain(t);
+			expect(t.startsWith('--c-')).toBe(false);
+		}
 	});
 
 	// text-shadow / drop-shadow() / transition-property are the synonyms a naive
@@ -578,7 +591,7 @@ describe('/libraries/[id] source guard', () => {
 		expect(src.match(/box-shadow|text-shadow|drop-shadow\s*\(/gi)).toBeNull();
 		const radii = [...src.matchAll(/border-radius\s*:\s*([^;}]+)/gi)].map((m) => m[1].trim());
 		expect(radii.length).toBeGreaterThan(0);
-		for (const r of radii) expect(r).toBe('0');
+		for (const r of radii) expect(['0', 'var(--r-none)']).toContain(r);
 		expect(src.match(/transition(-property)?\s*:\s*all/gi)).toBeNull();
 	});
 
@@ -603,45 +616,14 @@ describe('/libraries/[id] source guard', () => {
 		expect(src.match(/escapeHTML/g)).toBeNull();
 	});
 
-	// Presence is NOT the property that matters here, and pinning it is what let the
-	// original bug ship: a media query adds no specificity, so `.tile:nth-child(4n+1)`
-	// declared outside one (0,2,0) outranks any `.tile` reset a narrower block can
-	// write (0,1,0), and `4n + 1` still MATCHES at three columns. The re-declarations
-	// were all present and none of them applied — folds sat mid-row at 1024–1279px
-	// and gutters collapsed at 768–1023px, with every string-presence guard green.
-	//
-	// So assert the STRUCTURE that makes the cascade work: every modulus bounded to
-	// its own breakpoint, and none of them at the top level.
-	const mediaBlocks = () =>
-		[...src.matchAll(/@media ([^{]+)\{([\s\S]*?)\n\t\}/g)].map((m) => ({
-			query: m[1].trim(),
-			body: m[2]
-		}));
-
-	test('every column-fold modulus is bounded to its own breakpoint', () => {
-		const owner = (modulus: string) =>
-			mediaBlocks().find((b) => b.body.includes(`nth-child(${modulus}`))?.query;
-
-		// 4n must not reach the 3- or 2-column bands.
-		expect(owner('4n + 1')).toMatch(/min-width:\s*1280px/);
-
-		// 3n must be fenced on BOTH sides — a bare max-width leaks onto two columns,
-		// where it strips the wrong tiles' gutters.
-		expect(owner('3n + 1')).toMatch(/min-width:\s*1024px/);
-		expect(owner('3n + 1')).toMatch(/max-width:\s*1279px/);
-
-		expect(owner('2n + 1')).toMatch(/max-width:\s*1023px/);
-
-		// Nothing may declare a modulus outside a media block at all.
-		const topLevel = src.replace(/@media [^{]+\{[\s\S]*?\n\t\}/g, '');
-		expect(topLevel).not.toMatch(/nth-child\(\d+n/);
-	});
-
-	test('the fold is painted once and turns off below the two-column breakpoint', () => {
-		expect(src).toMatch(/\.tile::before\s*\{[^}]*background:\s*var\(--wired-black\)/);
-
-		const twoCol = mediaBlocks().find((b) => /max-width:\s*1023px/.test(b.query))?.body;
-		expect(twoCol).toMatch(/\.tile::before\s*\{[^}]*display:\s*none/);
+	// § 10: auto-fill tracks at --s-md, the tile is not a card, separation is the gap,
+	// and the border sits on the image box. No fold, no rule between tiles.
+	test('the cover grid is § 10 Media', () => {
+		expect(src).toMatch(/\.grid\s*\{[^}]*grid-template-columns:\s*repeat\(auto-fill, minmax\([^)]+, 1fr\)\)[^}]*gap:\s*var\(--s-md\)/);
+		expect(src).toMatch(/\.cover\s*\{[^}]*aspect-ratio:\s*2 \/ 3[^}]*border:\s*var\(--stroke-hair\) solid var\(--token-border\)/);
+		const tile = src.match(/\.tile\s*\{([^}]*)\}/)?.[1] ?? '';
+		expect(tile).not.toMatch(/background|border|box-shadow|radius/);
+		expect(src.match(/\.tile::before|nth-child/g)).toBeNull();
 	});
 
 	// Scoped to the pagination markup on purpose: an unscoped ellipsis scan would
@@ -682,18 +664,12 @@ describe('/libraries/[id] source guard', () => {
 
 	// Without bottom padding the pagination butts onto the dark footer.
 	test('the column reserves space below the pagination at every width', () => {
-		expect(src).toMatch(
-			/\.column\s*\{[^}]*padding:\s*var\(--space-48\)\s+var\(--space-24\)\s+var\(--space-48\)/
-		);
-
-		// AC16 narrows the SIDES on mobile. A third value here shrinks the bottom too,
-		// which is how the 48px quietly became 32px.
-		const mobile = mediaBlocks().find((b) => /max-width:\s*767px/.test(b.query))?.body;
-		expect(mobile).toMatch(/\.column\s*\{[^}]*padding:\s*var\(--space-48\)\s+var\(--space-16\);/);
+		expect(src).toMatch(/\.column\s*\{[^}]*padding:\s*var\(--s-xl\)\s+var\(--s-lg\);/);
+		expect(src.match(/@media[^{]*\{[^@]*\.column\s*\{/g)).toBeNull();
 	});
 
-	// DESIGN.md §8 locks mono at 13px. The ramp must never scale a kicker.
-	test('the responsive ramp never rescales the mono kickers', () => {
+	// The kicker's size is the Label's own; the route never restyles it.
+	test('the route never restyles the mono kickers', () => {
 		expect(src.match(/\.mono-kicker/g)).toBeNull();
 	});
 

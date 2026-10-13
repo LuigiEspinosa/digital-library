@@ -3,32 +3,14 @@
    The plain pair, tokens then fonts: this app is not the Tailwind adapter's consumer. */
 @import '../lib/cuatro-contracts/tokens.css';
 @import '../lib/cuatro-contracts/fonts.css';
-@import '../lib/tokens.css';
 
 /* Theme keys read the contract's roles directly. A theme key never reads its own name
    (`--font-display: var(--font-display)` resolved only because an unlayered :root rule won). */
 @theme inline {
-  --color-ink: var(--token-text);
-  --color-caption: var(--token-text-secondary);
-  --color-link: var(--token-accent);
-
   --font-display: var(--f-display);
   --font-serif: var(--f-body);
   --font-sans: var(--f-body);
   --font-mono: var(--f-mono);
-
-  /* The book page still writes Tailwind's stone palette and white; until the restyle
-     rewrites it, each step reads a role so no surface stays on the light palette (S-7). */
-  --color-white: var(--token-bg);
-  --color-stone-50: var(--token-bg);
-  --color-stone-100: var(--token-bg-raised);
-  --color-stone-200: var(--token-border);
-  --color-stone-400: var(--token-text-secondary);
-  --color-stone-500: var(--token-text-secondary);
-  --color-stone-600: var(--token-text-secondary);
-  --color-stone-700: var(--token-text);
-  --color-stone-800: var(--token-text);
-  --color-stone-900: var(--token-text);
 
   --radius: 0;
   --radius-xs: 0;

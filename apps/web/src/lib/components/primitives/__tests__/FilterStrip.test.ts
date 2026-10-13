@@ -177,17 +177,13 @@ describe('FilterStrip', () => {
 		// (4) Every var(--…) must be a palette color or a --font-*/--space-* token.
 		// No min-count guard (AC9): FilterStrip legitimately uses no color token.
 		const tokens = [...src.matchAll(/var\(\s*(--[a-z0-9-]+)/g)].map((m) => m[1]);
-		const allowedColors = [
-			'--page-ink',
-			'--caption-gray',
-			'--link-blue',
-			'--wired-black',
-			'--paper-white',
-			'--hairline-tint'
-		];
+		// Story 8.2: every custom property is one the vendored contract defines, and a
+		// colour is a role, never the raw --c-* palette.
+		const contract = [...readFileSync(join(dirname(componentSource), '../../cuatro-contracts/tokens.css'), 'utf8')
+			.matchAll(/^\s*(--[\w-]+)\s*:/gm)].map((m) => m[1]);
 		for (const t of tokens) {
-			const ok = allowedColors.includes(t) || t.startsWith('--font-') || t.startsWith('--space-');
-			expect(ok, `off-palette token ${t}`).toBe(true);
+			expect(contract, `not a contract token: ${t}`).toContain(t);
+			expect(t.startsWith('--c-')).toBe(false);
 		}
 	});
 });

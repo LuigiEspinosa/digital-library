@@ -58,37 +58,21 @@
 </div>
 
 <style>
-	/* Layout-only: every pixel of color, the 2px border and the 150ms hover
-	   inversion belong to the composed <Button> (Risk #1 — reinventing them here is
-	   the drift this primitive exists to kill). No color, no box-shadow, no
-	   transition, no non-zero radius, no Tailwind. */
+	/* Tabs (§ What is deliberately not in the vocabulary): Controls in a row, the current
+	   one carrying the emphasis underline. Siblings keep --s-lg apart so no two --tap boxes
+	   overlap, and wrap rather than scroll. */
 	.filter-strip {
 		display: flex;
+		flex-wrap: wrap;
 		align-items: stretch;
-		gap: 24px;
+		gap: var(--s-lg);
 	}
 
 	.seg {
 		display: flex;
+		flex-wrap: wrap;
 		align-items: stretch;
-	}
-
-	/* Border collapse: pull every cell after the first back over its neighbour's
-	   2px border so the two fuse to a single 2px seam (no gap, no doubled 4px line).
-	   Collapsed on this FilterStrip-owned wrapper — NOT via a class on <Button> — a
-	   scoped class never reaches a child component's root, so it would silently
-	   no-op. The seam itself is a visual-check item (jsdom computes no scoped style). */
-	.seg-cell:not(:first-child) {
-		margin-left: -2px;
-	}
-
-	/* Raise the focused cell above its neighbours: the -2px collapse overlaps
-	   adjacent cells, and later cells paint last, so an interior segment's 2px
-	   focus outline (Button's, offset 2px) would be clipped by the next cell's
-	   border/background without a stacking context. */
-	.seg-cell:focus-within {
-		position: relative;
-		z-index: 1;
+		gap: var(--s-lg);
 	}
 
 	.trailing {

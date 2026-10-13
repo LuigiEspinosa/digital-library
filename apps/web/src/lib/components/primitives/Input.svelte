@@ -78,84 +78,65 @@
 		width: 100%;
 	}
 
-	/* CSS-only uppercasing (like MonoKicker): a caller may pass EMAIL or Email and the
-	   DOM/screen-reader keep the original case. */
+	/* § 7 Label above the field, uppercased in CSS only. */
 	.label {
-		font-family: var(--font-sans);
-		font-size: 13px;
-		font-weight: 700;
-		letter-spacing: 0.3px;
+		margin-bottom: var(--s-xs);
+		font-family: var(--f-mono);
+		font-size: var(--t-3xs);
+		line-height: var(--lh-label);
+		letter-spacing: var(--tr-label);
 		text-transform: uppercase;
-		color: var(--page-ink);
-		margin-bottom: var(--space-8);
+		color: var(--token-text-secondary);
 	}
 
-	/* border-radius: 0 is already global (layout.css --radius*: 0), but pin it locally
-	   so the square corner is override-proof (DESIGN.md §4). No box-shadow (§6). */
+	/* § 9 Field: the page ground, never a lighter fill; rest and hover are identical;
+	   focus is the standard ring alone. */
 	.field {
 		box-sizing: border-box;
 		width: 100%;
-		height: 48px;
-		padding: 0 14px;
-		background: var(--paper-white);
-		border: 2px solid var(--wired-black);
-		border-radius: 0;
-		font-family: var(--font-sans);
-		font-size: 16px;
-		color: var(--page-ink);
+		min-height: var(--tap);
+		padding: var(--s-xs) var(--s-sm);
+		background: var(--token-bg);
+		border: var(--stroke-boundary) solid var(--token-border-interactive);
+		border-radius: var(--r-none);
+		font-family: var(--f-body);
+		font-size: var(--t-sm);
+		color: var(--token-text);
 	}
 
 	.field::placeholder {
-		color: var(--caption-gray);
+		color: var(--token-text-secondary);
 	}
 
-	/* readonly softens the border to caption-gray (08-settings.md) — NOT black, NOT the
-	   out-of-palette #a0aec0; editing is blocked by the native readonly attribute. */
+	/* Read-only takes § 9's disabled treatment; it stays focusable, so it keeps the ring. */
 	.field.is-readonly {
-		border-color: var(--caption-gray);
+		border-color: var(--token-border);
+		color: var(--token-text-secondary);
 	}
 
-	/* The editorial focus outline — a 2px outset, no glow ring, no border recolor
-	   (identical to Button/AppNav). :focus-visible so it shows for keyboard users only. */
-	.field:not(.is-readonly):focus-visible {
-		outline: 2px solid var(--wired-black);
-		outline-offset: 2px;
-	}
-
-	/* readonly inputs stay focusable, so the :not() gate alone isn't enough — suppress
-	   the outline explicitly (the epic requires none on read-only fields). */
-	.field.is-readonly:focus-visible {
-		outline: none;
-	}
-
-	/* Printerly, no red: a 2px-black-bordered block (DESIGN.md's #e53e3e is superseded
-	   by the epic AC + 04-login.md). The mono ERROR kicker + serif message compose inside. */
+	/* S-4: the message is text, adjacent and associated; no ground, no colour. */
 	.error-block {
-		margin-top: 6px;
+		margin-top: var(--s-xs);
 		box-sizing: border-box;
-		background: var(--paper-white);
-		border: 2px solid var(--wired-black);
-		padding: 14px 16px;
+		border: var(--stroke-boundary) solid var(--token-border-interactive);
+		padding: var(--s-sm) var(--s-md);
 	}
 
 	.error-message {
-		margin: 6px 0 0;
-		font-family: var(--font-serif);
-		font-size: 16px;
-		line-height: 1.5;
-		color: var(--page-ink);
+		margin: var(--s-2xs) 0 0;
+		font-family: var(--f-body);
+		font-size: var(--t-sm);
+		line-height: var(--lh-body);
+		color: var(--token-text);
 	}
 
-	/* margin: 6px 0 0 resets the UA <p> margins and sets the field→helper gap for both
-	   modes; the mono variant styles its type via the composed MonoKicker. */
 	.helper {
-		margin: 6px 0 0;
+		margin: var(--s-xs) 0 0;
 	}
 
 	.helper-sans {
-		font-family: var(--font-sans);
-		font-size: 13px;
-		font-weight: 400;
-		color: var(--caption-gray);
+		font-family: var(--f-body);
+		font-size: var(--t-xs);
+		color: var(--token-text-secondary);
 	}
 </style>
