@@ -26,48 +26,60 @@
 <style>
 	.footer {
 		width: 100%;
-		background: var(--page-ink);
-		padding: var(--space-48) 0;
+		border-top: var(--stroke-hair) solid var(--token-border);
+		padding: var(--s-xl) var(--s-lg);
+		box-sizing: border-box;
 		display: flex;
 		flex-direction: column;
 		align-items: center;
 		text-align: center;
-		border-radius: 0;
 	}
 
 	.wordmark {
-		font-family: var(--font-display);
-		font-size: 32px;
-		color: var(--paper-white);
 		margin: 0;
+		font-family: var(--f-display);
+		font-size: var(--t-lg);
+		font-weight: var(--w-black);
+		font-stretch: 75%;
+		letter-spacing: var(--tr-heading);
+		line-height: var(--lh-heading);
+		color: var(--token-text);
 	}
 
 	.footer-links {
-		margin-top: var(--space-16);
+		margin-top: var(--s-sm);
 		display: flex;
+		flex-wrap: wrap;
+		justify-content: center;
 		align-items: center;
+		column-gap: var(--s-lg);
 	}
 
-	/* Footer renders its own GITHUB/DOCS/ADMIN anchors, so they sit inside this
-	   component's style scope — plain .footer-links a, not the :global() the slot
-	   links in UtilityBar/AppNav need. */
+	/* § 1b secondary Links: the --tap box on the anchor, the underline on its text. */
 	.footer-links a {
-		font-family: var(--font-sans);
-		font-size: 11px;
+		display: inline-flex;
+		align-items: center;
+		justify-content: center;
+		min-height: var(--tap);
+		min-width: var(--tap);
+		font-family: var(--f-mono);
+		font-size: var(--t-2xs);
+		letter-spacing: var(--tr-label);
 		text-transform: uppercase;
-		letter-spacing: 0.92px;
-		color: var(--paper-white);
-		text-decoration: none;
-		transition: color 120ms;
+		color: var(--token-text-secondary);
+		text-decoration: underline;
+		text-decoration-color: var(--token-border-interactive);
+		text-decoration-thickness: var(--stroke-hair);
+		text-underline-offset: var(--s-2xs);
+		transition: text-decoration-color var(--dur-micro) var(--ease-toggle);
 	}
 
 	.footer-links a:hover {
-		color: var(--link-blue);
+		text-decoration-color: var(--token-accent-hover);
 	}
 
 	.footer-links .sep {
-		margin: 0 var(--space-8);
-		color: var(--paper-white);
+		color: var(--token-text-secondary);
 		user-select: none;
 	}
 </style>

@@ -14,44 +14,43 @@
 </div>
 
 <style>
+	/* The page ground with a hairline beneath, never a band. */
 	.app-nav {
 		width: 100%;
-		height: 64px;
-		background: var(--paper-white);
-		border-bottom: 1px solid var(--hairline-tint);
-		border-radius: 0;
+		border-bottom: var(--stroke-hair) solid var(--token-border);
 	}
 
 	.app-nav-inner {
 		display: flex;
 		align-items: center;
 		justify-content: space-between;
+		gap: var(--s-lg);
 		max-width: 1280px;
-		height: 100%;
+		min-height: calc(var(--tap) + 2 * var(--s-xs));
 		margin: 0 auto;
-		padding: 0 var(--space-24);
+		padding: 0 var(--s-lg);
 		box-sizing: border-box;
 	}
 
-	/* Brand mark: deliberately keeps --page-ink on hover (no link-blue swap, no
-	   underline) — DESIGN.md §4 "logo never recolored". Keyboard focus is the only
-	   interactive cue, so resist adding the app-wide link hover here. */
+	/* The wordmark keeps its colour on hover: the ring is its only interactive cue. */
 	.wordmark {
-		font-family: var(--font-display);
-		font-size: 24px;
-		color: var(--page-ink);
+		display: inline-flex;
+		align-items: center;
+		min-height: var(--tap);
+		font-family: var(--f-display);
+		font-size: var(--t-md);
+		font-weight: var(--w-black);
+		font-stretch: 75%;
+		letter-spacing: var(--tr-heading);
+		line-height: var(--lh-heading);
+		color: var(--token-text);
 		text-decoration: none;
 		white-space: nowrap;
-	}
-
-	.wordmark:focus-visible {
-		outline: 2px solid var(--wired-black);
-		outline-offset: 2px;
 	}
 
 	.app-nav-right {
 		display: flex;
 		align-items: center;
-		gap: var(--space-12);
+		gap: var(--s-lg);
 	}
 </style>

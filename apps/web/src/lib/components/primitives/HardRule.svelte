@@ -17,50 +17,34 @@
 {/if}
 
 <style>
-	/* Reset the UA <hr> default border + ~8px margins first; without it the 1px
-	   weights render doubled and won't match DESIGN.md §6. */
+	/* § 3: every weight is the 1px opaque Hairline; a rule divides and carries no meaning. */
 	.hard-rule {
 		border: 0;
 		margin: 0;
-		border-radius: 0;
+		border-radius: var(--r-none);
 	}
 
 	hr.hard-rule {
 		width: 100%;
+		border-top: var(--stroke-hair) solid var(--token-border);
 	}
 
-	.hairline {
-		border-top: 1px solid var(--hairline-tint);
-	}
-
-	.rule {
-		border-top: 1px solid var(--wired-black);
-	}
-
-	.bracket {
-		border-top: 2px solid var(--wired-black);
-	}
-
+	/* The ribbon is a § 7 Section label on its hairline, not a filled band. */
 	.ribbon {
 		width: 100%;
-		height: 36px;
-		background: var(--wired-black);
 		display: flex;
 		align-items: center;
-		padding: 0 var(--space-24);
+		padding: var(--s-xs) 0;
 		box-sizing: border-box;
+		border-bottom: var(--stroke-hair) solid var(--token-border);
 	}
 
-	/* The ribbon label is this component's own element, so the §3 Section Ribbon
-	   type flows into it directly — no :global (unlike the slot links in
-	   UtilityBar/AppNav, which are caller-authored). */
 	.ribbon-text {
-		font-family: var(--font-mono);
-		font-size: 12px;
-		font-weight: 700;
-		line-height: 1;
-		letter-spacing: 1.2px;
+		font-family: var(--f-mono);
+		font-size: var(--t-3xs);
+		line-height: var(--lh-label);
+		letter-spacing: var(--tr-label);
 		text-transform: uppercase;
-		color: var(--paper-white);
+		color: var(--token-text-secondary);
 	}
 </style>

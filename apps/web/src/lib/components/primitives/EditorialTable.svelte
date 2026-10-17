@@ -58,16 +58,16 @@
 	.editorial-table > thead > :global(tr) > :global(th) {
 		text-align: left;
 		padding: 18px 16px;
-		border-bottom: 2px solid var(--wired-black);
+		border-bottom: 2px solid var(--token-text);
 		border-radius: 0;
-		background: var(--paper-white);
-		font-family: var(--font-mono);
+		background: var(--token-bg);
+		font-family: var(--f-mono);
 		font-size: 12px;
 		font-weight: 700;
 		line-height: 1;
 		letter-spacing: 1.2px;
 		text-transform: uppercase;
-		color: var(--page-ink);
+		color: var(--token-text);
 	}
 
 	/* Dividers live on the cells, not the row: under border-collapse that is the
@@ -76,13 +76,13 @@
 	   (§6 level-2 structural rule). */
 	.editorial-table > tbody > :global(tr) > :global(td) {
 		padding: 18px 16px;
-		border-bottom: 1px solid var(--hairline-tint);
+		border-bottom: 1px solid var(--token-border);
 		border-radius: 0;
 		vertical-align: middle;
 	}
 
 	.editorial-table > tbody > :global(tr:last-child) > :global(td) {
-		border-bottom: 1px solid var(--wired-black);
+		border-bottom: 1px solid var(--token-text);
 	}
 
 	/* Warm hover (default): #f7f7f4 is the ONE sanctioned off-palette value (AC1) —
@@ -97,7 +97,7 @@
 	/* Strict hover: palette-only fallback (a black top rule, no fill) for a screen
 	   that must stay strictly in the six-color palette. */
 	.editorial-table.row-hover-strict > tbody > :global(tr:hover) > :global(td) {
-		border-top: 1px solid var(--wired-black);
+		border-top: 1px solid var(--token-text);
 	}
 
 	/* Dense: tighter cells for high-row-count tables (the Import queue). */

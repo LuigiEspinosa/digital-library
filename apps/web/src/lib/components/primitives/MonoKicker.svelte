@@ -11,50 +11,36 @@
 <span class="mono-kicker {size} {tone}">{@render children?.()}</span>
 
 <style>
-	/* Uppercasing is CSS-only on purpose: the DOM text node keeps the author's
-	   original casing, so a screen reader announces "3 hours ago" rather than the
-	   shouted caps. Never .toUpperCase() in JS — that is the bug this primitive
-	   exists to prevent (DESIGN.md §3: mono is always uppercase). */
+	/* RESTYLE-SPEC.md § 7 Label. Uppercasing is CSS-only on purpose: the DOM text keeps
+	   the author's casing, so a screen reader never reads shouted caps. */
 	.mono-kicker {
-		font-family: var(--font-mono);
-		font-weight: 400;
+		font-family: var(--f-mono);
+		font-weight: var(--w-regular);
+		line-height: var(--lh-label);
+		letter-spacing: var(--tr-label);
 		text-transform: uppercase;
+		font-variant-numeric: tabular-nums;
 	}
 
-	/* Sizes hardcoded per DESIGN.md §3 (Timestamp/Meta, Eyebrow/Kicker, Section
-	   Ribbon rows). The --type-kicker-* tokens look apt but are dead in the
-	   codebase; hardcoding keeps the table symmetric and `ribbon` byte-identical
-	   to HardRule's .ribbon-text (so Epic 03 can compose this in there later). */
 	.sm {
-		font-size: 12px;
-		line-height: 1.33;
-		letter-spacing: 1.1px;
+		font-size: var(--t-3xs);
 	}
 
 	.md {
-		font-size: 13px;
-		line-height: 1.23;
-		letter-spacing: 0.92px;
+		font-size: var(--t-2xs);
 	}
 
-	/* font-weight 700 re-declared after the base 400: equal specificity, so source
-	   order wins. The base 400 also defends sm/md against a bold context (B.8 <th>). */
 	.ribbon {
-		font-size: 12px;
-		line-height: 1;
-		letter-spacing: 1.2px;
-		font-weight: 700;
+		font-size: var(--t-3xs);
+		font-weight: var(--w-bold);
 	}
 
-	.ink {
-		color: var(--page-ink);
+	.ink,
+	.paper {
+		color: var(--token-text);
 	}
 
 	.caption {
-		color: var(--caption-gray);
-	}
-
-	.paper {
-		color: var(--paper-white);
+		color: var(--token-text-secondary);
 	}
 </style>

@@ -105,14 +105,12 @@
 
 <style>
 	.login-page {
-		/* dvh, with the vh fallback first for browsers that lack it: on mobile Safari
-		   and Chrome 100vh is the *large* viewport, so with the URL bar on screen the
-		   floor ribbon would sit below the fold on first paint. */
+		/* dvh, with the vh fallback first for browsers that lack it: on mobile 100vh is
+		   the large viewport, so the floor would sit below the fold on first paint. */
 		min-height: 100vh;
 		min-height: 100dvh;
 		display: flex;
 		flex-direction: column;
-		background: var(--paper-white);
 	}
 
 	.stage {
@@ -120,7 +118,7 @@
 		display: flex;
 		align-items: center;
 		justify-content: center;
-		padding: var(--space-64) var(--space-32);
+		padding: var(--s-2xl) var(--page-pad);
 	}
 
 	.column {
@@ -128,128 +126,116 @@
 		max-width: 100%;
 	}
 
+	/* The page's one display line (§ 6). */
 	.wordmark {
-		margin: var(--space-8) 0 0;
-		font-family: var(--font-display);
-		font-size: 64px;
-		font-weight: 400;
-		line-height: 1.05;
-		letter-spacing: -0.5px;
-		color: var(--page-ink);
+		margin: var(--s-xs) 0 0;
+		font-family: var(--f-display);
+		font-size: var(--t-display);
+		font-weight: var(--w-black);
+		line-height: var(--lh-display);
+		letter-spacing: var(--tr-display);
+		text-transform: uppercase;
+		color: var(--token-text);
 	}
 
 	.line {
 		display: block;
 	}
 
-	/* inline-block so the rule stops at the word's last glyph rather than running the
-	   column width; a text-decoration cannot hit the 2px/8px spec reliably. */
+	/* inline-block so the hairline stops at the word's last glyph. */
 	.underlined {
-		position: relative;
 		display: inline-block;
-		padding-bottom: 8px;
-	}
-
-	.underlined::after {
-		content: '';
-		position: absolute;
-		left: 0;
-		right: 0;
-		bottom: 0;
-		height: 2px;
-		background: var(--wired-black);
+		padding-bottom: var(--s-xs);
+		border-bottom: var(--stroke-hair) solid var(--token-border-interactive);
 	}
 
 	.deck {
-		margin: var(--space-16) 0 0;
-		font-family: var(--font-serif);
-		font-size: 19px;
-		font-style: italic;
-		line-height: 1.47;
-		letter-spacing: 0.108px;
-		color: var(--caption-gray);
+		margin: var(--s-md) 0 0;
+		max-width: var(--measure);
+		font-family: var(--f-body);
+		font-size: var(--t-base);
+		line-height: var(--lh-lede);
+		color: var(--token-text-secondary);
 	}
 
 	.rule {
-		margin: var(--space-24) 0 var(--space-32);
+		margin: var(--s-lg) 0 var(--s-xl);
 	}
 
-	/* Deliberately matches B.7's internal error treatment so the design system has one
-	   error look: paper ground, 2px black frame, no red, no icon, no dismiss. */
+	/* The form-level message: text in a Boundary box, no ground, no colour (S-4). */
 	.error-block {
 		box-sizing: border-box;
-		background: var(--paper-white);
-		border: 2px solid var(--wired-black);
-		border-radius: 0;
-		padding: 14px 16px;
-		margin-bottom: var(--space-24);
+		border: var(--stroke-boundary) solid var(--token-border-interactive);
+		padding: var(--s-sm) var(--s-md);
+		margin-bottom: var(--s-lg);
 	}
 
 	.error-message {
-		margin: 6px 0 0;
-		font-family: var(--font-serif);
-		font-size: 16px;
-		line-height: 1.5;
-		color: var(--page-ink);
+		margin: var(--s-2xs) 0 0;
+		font-family: var(--f-body);
+		font-size: var(--t-sm);
+		line-height: var(--lh-body);
+		color: var(--token-text);
 	}
 
-	/* A class passed into a child component lands on that component's element and
-	   carries its scoping hash, not this route's — so the sizing of <Input> and
-	   <Button> has to reach through :global(). */
+	/* A class passed into a child component lands on its element with that component's
+	   scope, so the layout of <Input> and <Button> reaches through :global(). */
 	.column :global(.field-gap) {
-		margin-top: var(--space-16);
+		margin-top: var(--s-md);
 	}
 
 	.column :global(.signin) {
 		width: 100%;
-		height: 56px;
-		margin-top: var(--space-24);
+		margin-top: var(--s-lg);
 	}
 
 	.helper {
-		margin: var(--space-24) 0 0;
-		font-family: var(--font-sans);
-		font-size: 14px;
-		font-weight: 400;
-		line-height: 1.45;
-		color: var(--caption-gray);
+		margin: var(--s-lg) 0 0;
+		font-family: var(--f-body);
+		font-size: var(--t-sm);
+		line-height: var(--lh-body);
+		color: var(--token-text-secondary);
 	}
 
-	/* The one centered thing on the page. In normal flow as the last flex child, so
-	   the flex:1 stage pins it to the viewport floor without position: fixed. */
+	/* The floor: a hairline above, metadata as a Label, the one link a § 1b Link. */
 	.floor {
 		width: 100%;
-		height: 44px;
-		background: var(--page-ink);
+		min-height: var(--tap);
+		box-sizing: border-box;
+		padding: 0 var(--page-pad);
+		border-top: var(--stroke-hair) solid var(--token-border);
 		display: flex;
+		flex-wrap: wrap;
 		align-items: center;
 		justify-content: center;
-		font-family: var(--font-sans);
-		font-size: 11px;
-		font-weight: 400;
-		letter-spacing: 0.92px;
+		font-family: var(--f-mono);
+		font-size: var(--t-2xs);
+		line-height: var(--lh-label);
+		letter-spacing: var(--tr-label);
 		text-transform: uppercase;
-		color: var(--paper-white);
+		color: var(--token-text-secondary);
 	}
 
 	.floor .sep {
-		margin: 0 var(--space-8);
+		margin: 0 var(--s-xs);
 		user-select: none;
 	}
 
 	.floor a {
-		color: inherit;
-		text-decoration: none;
-		transition: color 150ms linear;
+		display: inline-flex;
+		align-items: center;
+		justify-content: center;
+		min-height: var(--tap);
+		min-width: var(--tap);
+		color: var(--token-text);
+		text-decoration: underline;
+		text-decoration-color: var(--token-border-interactive);
+		text-decoration-thickness: var(--stroke-hair);
+		text-underline-offset: var(--s-2xs);
+		transition: text-decoration-color var(--dur-micro) var(--ease-toggle);
 	}
 
 	.floor a:hover {
-		color: var(--link-blue);
-	}
-
-	@media (max-width: 767px) {
-		.stage {
-			padding: var(--space-32) var(--space-24);
-		}
+		text-decoration-color: var(--token-accent-hover);
 	}
 </style>
