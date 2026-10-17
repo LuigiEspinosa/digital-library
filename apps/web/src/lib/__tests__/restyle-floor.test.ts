@@ -8,7 +8,8 @@ import { fileURLToPath } from 'node:url';
 // keeps the parts a source read can see from drifting back.
 const lib = join(dirname(fileURLToPath(import.meta.url)), '..');
 const src = join(lib, '..');
-const read = (p: string) => readFileSync(join(src, p), 'utf8');
+// Line ends normalized, so a checkout with core.autocrlf=true reads what CI reads (DW-352).
+const read = (p: string) => readFileSync(join(src, p), 'utf8').replace(/\r\n/g, '\n');
 
 // Every component and route a Visitor reaches through the demo sign-in, plus /login
 // and the error page. /admin and the reader are below the floor.
