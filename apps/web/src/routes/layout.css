@@ -57,3 +57,12 @@ textarea,
 button {
   border-radius: var(--r-none); /* S-3 */
 }
+
+/* I-11, RESTYLE-SPEC.md § 4 and § 9: a field's focus ring takes no radius. Stated at the focused
+   state, so a field stays square without relying on a scoped rule out-ranking :focus-visible. The
+   file input is left out until the Operator rules whether it is a § 9 field (Q-2). */
+input:not([type='file']):focus-visible,
+select:focus-visible,
+textarea:focus-visible {
+  border-radius: var(--r-none);
+}
