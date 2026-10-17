@@ -1,15 +1,17 @@
+/* The app's own names, each now reading a contract role (hand-fix 5, S-9).
+   Kept for the adopt step only: the restyle names the roles directly and deletes this file. */
 :root {
-  --page-ink: #1a1a1a;
-  --caption-gray: #757575;
-  --link-blue: #057dbc;
-  --wired-black: #000000;
-  --paper-white: #ffffff;
-  --hairline-tint: #e2e8f0;
+  --page-ink: var(--token-text);
+  --caption-gray: var(--token-text-secondary);
+  --link-blue: var(--token-accent);
+  --wired-black: var(--token-text);
+  --paper-white: var(--token-bg);
+  --hairline-tint: var(--token-border);
 
-  --font-display: 'Playfair Display', Georgia, serif;
-  --font-serif: 'Source Serif 4', Georgia, serif;
-  --font-sans: 'Inter', system-ui, sans-serif;
-  --font-mono: 'JetBrains Mono', ui-monospace, monospace;
+  --font-display: var(--f-display);
+  --font-serif: var(--f-body);
+  --font-sans: var(--f-body);
+  --font-mono: var(--f-mono);
 
   --space-1: 1px;
   --space-4: 4px;
@@ -21,24 +23,4 @@
   --space-40: 40px;
   --space-48: 48px;
   --space-64: 64px;
-
-  --type-hero-size: 4rem;
-  --type-hero-line: 1.05;
-  --type-hero-tracking: -0.5px;
-
-  --type-display-size: 1.63rem;
-  --type-display-line: 1.2;
-  --type-display-tracking: 0;
-
-  --type-heading-size: 1.25rem;
-  --type-heading-line: 1.2;
-  --type-heading-tracking: -0.28px;
-
-  --type-body-size: 1rem;
-  --type-body-line: 1.5;
-  --type-body-tracking: 0.09px;
-
-  --type-kicker-size: 0.81rem;
-  --type-kicker-line: 1.23;
-  --type-kicker-tracking: 0.92px;
 }
