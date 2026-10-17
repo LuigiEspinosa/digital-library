@@ -68,16 +68,16 @@
 		overflow: hidden; /* clips the fill to the tag box */
 		height: 22px;
 		padding: 0 8px;
-		border: 2px solid var(--page-ink);
+		border: 2px solid var(--token-text);
 		border-radius: 0;
 		background: transparent;
-		font-family: var(--font-mono);
+		font-family: var(--f-mono);
 		font-size: 12px;
 		font-weight: 700;
 		line-height: 1;
 		letter-spacing: 1px;
 		text-transform: uppercase;
-		color: var(--page-ink);
+		color: var(--token-text);
 		white-space: nowrap;
 	}
 
@@ -90,14 +90,14 @@
 
 	/* DONE in the import queue: printerly success is an inversion, never green. */
 	.inverted {
-		background: var(--page-ink);
-		color: var(--paper-white);
+		background: var(--token-text);
+		color: var(--token-bg);
 	}
 
 	/* QUEUED: off-ink, waiting. */
 	.muted {
-		border-color: var(--caption-gray);
-		color: var(--caption-gray);
+		border-color: var(--token-text-secondary);
+		color: var(--token-text-secondary);
 	}
 
 	/* DUPLICATE ("already on file") is muted PLUS the hatch, not the hatch alone —
@@ -109,9 +109,9 @@
 	   gradients outright. Same sanctioned-exception flag EditorialTable carries for
 	   its one off-palette hover; do not "fix" it away. */
 	.striped {
-		border-color: var(--caption-gray);
-		color: var(--caption-gray);
-		background-image: repeating-linear-gradient(135deg, var(--hairline-tint) 0 4px, transparent 4px 8px);
+		border-color: var(--token-text-secondary);
+		color: var(--token-text-secondary);
+		background-image: repeating-linear-gradient(135deg, var(--token-border) 0 4px, transparent 4px 8px);
 	}
 
 	/* The "ink stain": a 10%-opacity ink wash under the label, width-bound to
@@ -122,7 +122,7 @@
 		left: 0;
 		top: 0;
 		bottom: 0;
-		background: var(--page-ink);
+		background: var(--token-text);
 		opacity: 0.1;
 		z-index: 0;
 		pointer-events: none;

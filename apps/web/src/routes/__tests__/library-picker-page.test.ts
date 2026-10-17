@@ -399,12 +399,12 @@ describe('/ library picker source guard', () => {
 		).toBeNull();
 	});
 
-	// Derived from tokens.css rather than hand-copied: a hardcoded subset false-reds
-	// the legitimate --space-1/4/12/40/48 the design system already defines, and a
-	// false red is what gets a guard deleted rather than fixed.
-	test('every var(--…) names a token defined in tokens.css', () => {
+	// Derived from the vendored contract rather than hand-copied (Story 8.2): every
+	// custom property this route reads is a contract role or scale, never the raw
+	// --c-* palette and never a name of its own.
+	test('every var(--…) names a token the vendored contract defines', () => {
 		const tokensCss = readFileSync(
-			join(dirname(fileURLToPath(import.meta.url)), '../../lib/tokens.css'),
+			join(dirname(fileURLToPath(import.meta.url)), '../../lib/cuatro-contracts/tokens.css'),
 			'utf8'
 		);
 		const defined = [...tokensCss.matchAll(/^\s*(--[\w-]+)\s*:/gm)].map((m) => m[1]);
@@ -414,7 +414,10 @@ describe('/ library picker source guard', () => {
 		// Guard the guard: an off-palette rewrite that empties the scan must fail,
 		// not pass vacuously.
 		expect(used.length).toBeGreaterThan(0);
-		for (const t of used) expect(defined).toContain(t);
+		for (const t of used) {
+			expect(defined).toContain(t);
+			expect(t.startsWith('--c-')).toBe(false);
+		}
 	});
 
 	// text-shadow / drop-shadow() / transition-property are the synonyms a naive
@@ -424,7 +427,7 @@ describe('/ library picker source guard', () => {
 	test('flat by religion: no shadow, no radius other than 0, no transition: all', () => {
 		expect(src.match(/box-shadow|text-shadow|drop-shadow\s*\(/gi)).toBeNull();
 		const radii = [...src.matchAll(/border-radius\s*:\s*([^;}]+)/gi)].map((m) => m[1].trim());
-		for (const r of radii) expect(r).toBe('0');
+		for (const r of radii) expect(['0', 'var(--r-none)']).toContain(r);
 		expect(src.match(/transition(-property)?\s*:\s*all/gi)).toBeNull();
 	});
 
@@ -439,44 +442,27 @@ describe('/ library picker source guard', () => {
 		expect(src.match(/rounded-|shadow-|bg-muted|destructive/g)).toBeNull();
 	});
 
-	// The prototype's bug this markup exists to avoid: a top border only on
-	// `li + li` means hovering row 01 adds 1px that nothing compensates for and
-	// nudges the whole list down.
-	test('every row carries a transparent top border, not just li + li', () => {
-		expect(src).toMatch(/\.rows\s+li\s*\{[^}]*border-top:\s*1px\s+solid\s+transparent/);
+	// RESTYLE-SPEC.md § 2: one breakpoint at 760px, grid-template-areas so the visual
+	// order moves while the DOM order stays, minmax(0, …) on the description column, and a
+	// hairline between siblings only, never on the first row.
+	test('the row is the § 2 grid at both widths', () => {
+		expect(src).toMatch(/\.row\s*\{[^}]*display:\s*grid[^}]*grid-template-columns:\s*1fr auto[^}]*grid-template-areas:/);
+		expect(src).toMatch(/@media \(min-width: 760px\)\s*\{\s*\.row\s*\{[^}]*minmax\(12ch, 3fr\) minmax\(0, 5fr\) auto/);
+		expect(src).toMatch(/\.rows li \+ li\s*\{[^}]*border-top:\s*var\(--stroke-hair\) solid var\(--token-border\)/);
+		expect(src).toMatch(/\.mid\s*\{[^}]*display:\s*contents/);
+		expect(src.match(/@media[^{]*\(m(in|ax)-width:\s*(?!(759|760)px)\d+px/g)).toBeNull();
 	});
 
-	// Focus parity is mandatory: a full-row link that only answers the mouse is a
-	// keyboard trap in spirit, and the prompt specifies no focus state at all.
-	// Counted rather than merely present: BOTH :has() rules (the row's own pair of
-	// borders, and the following row's top border) need the keyboard arm. Asserting
-	// a single occurrence stays green when one of the two is dropped, which leaves
-	// the swap half mouse-only.
-	test('the rule swap and the name underline both answer :focus-visible', () => {
-		expect(src.match(/\.rows li:has\(\.row:focus-visible\)/g)).toHaveLength(2);
-		expect(src.match(/\.rows li:has\(\.row:hover\)/g)).toHaveLength(2);
-		expect(src).toMatch(/\.row:focus-visible\s+\.name/);
-		expect(src).toMatch(/\.row:focus-visible\s*\{[^}]*outline:\s*2px\s+solid/);
+	// Hover is one signal: the name's underline recolours. The row never changes ground,
+	// and the ring is layout.css's, so the row never paints its own outline.
+	test('the row answers hover with the underline alone, and the ring stays global', () => {
+		expect(src).toMatch(/\.row:hover \.name\s*\{[^}]*text-decoration-color:\s*var\(--token-accent-hover\)/);
+		expect(src.match(/outline\s*:/g)).toBeNull();
+		expect(src.match(/background/g)).toBeNull();
 	});
 
-	// `border-bottom: 0` has no width for the hover swap to paint, so the last row
-	// bracketed on one edge only. The resting hairline must be transparent instead.
-	test('the last row keeps a paintable bottom border', () => {
-		expect(src).toMatch(/\.rows li:last-child\s*\{[^}]*border-bottom-color:\s*transparent/);
-		expect(src.match(/\.rows li:last-child\s*\{[^}]*border-bottom:\s*0/)).toBeNull();
-	});
-
-	// Row 01's top edge is already the 2px opening bracket; the hover hairline
-	// stacking under it reads as one 3px rule.
-	test('row 01 does not paint a hover rule under the opening bracket', () => {
-		expect(src).toMatch(/\.rows li:first-child:has\(\.row:hover\)/);
-		expect(src).toMatch(/\.rows li:first-child:has\(\.row:focus-visible\)/);
-	});
-
-	// Without bottom padding the closing bracket butts onto the dark footer and
-	// stops reading as a rule.
-	test('the column reserves space below the closing bracket', () => {
-		expect(src).toMatch(/\.column\s*\{[^}]*padding:\s*var\(--space-64\)\s+var\(--space-24\)\s+var\(--space-48\)/);
+	test('the column keeps its padding on the spacing scale', () => {
+		expect(src).toMatch(/\.column\s*\{[^}]*padding:\s*var\(--s-2xl\)\s+var\(--s-lg\)\s+var\(--s-xl\)/);
 	});
 
 	// The email must outrank UtilityBar's `.utility-right > :global(*)`, which ties
@@ -497,8 +483,9 @@ describe('/ library picker source guard', () => {
 		expect(dvh).toBeGreaterThan(vh);
 	});
 
-	// DESIGN.md §8 locks mono at 13px. The ramp must never scale a kicker.
-	test('the responsive ramp never rescales the mono kickers', () => {
-		expect(src.match(/\.mono-kicker/g)).toBeNull();
+	// The kicker's size is the Label's own; a route only places it in a grid area.
+	test('the route never resizes the mono kickers', () => {
+		const rules = [...src.matchAll(/\.mono-kicker\)\s*\{([^}]*)\}/g)].map((m) => m[1]);
+		for (const r of rules) expect(r).not.toMatch(/font-size/);
 	});
 });

@@ -139,16 +139,13 @@
 </div>
 
 <style>
-	/* 100vh first, then 100dvh: on mobile Safari/Chrome 100vh is the LARGE
-	   viewport, so with the URL bar on screen the footer starts below the fold.
-	   The layout wrapper is a plain non-flex div, so the full-height column is
-	   this route's own job. */
+	/* 100vh first, then 100dvh: on mobile 100vh is the large viewport. The layout
+	   wrapper is a plain non-flex div, so the full-height column is this route's job. */
 	.picker {
 		display: flex;
 		flex-direction: column;
 		min-height: 100vh;
 		min-height: 100dvh;
-		background: var(--paper-white);
 	}
 
 	.column {
@@ -156,21 +153,12 @@
 		width: 100%;
 		max-width: 1280px;
 		margin: 0 auto;
-		/* Bottom padding is load-bearing, not symmetry: once the list is tall enough
-		   to fill the viewport the closing 2px bracket butts straight onto the dark
-		   footer and stops reading as a rule at all. */
-		padding: var(--space-64) var(--space-24) var(--space-48);
+		padding: var(--s-2xl) var(--s-lg) var(--s-xl);
 		box-sizing: border-box;
 	}
 
-	/* The bar uppercases everything it contains, which turns a signed-in address
-	   into LUIGI@PHAROSGRAPH.COM. The prompt sets ADMIN and SIGN OUT in caps and
-	   leaves the email lowercase; a shouted address is also markedly harder to scan.
-
-	   Qualified with the element on purpose: UtilityBar styles this span through
-	   `.utility-right > :global(*)`, which ties on specificity, so a bare class would
-	   be decided by stylesheet order — and the mobile `display: none` below has to
-	   win outright. */
+	/* The bar uppercases everything it holds; an address reads better as written.
+	   Qualified with the element so the mobile display: none below wins outright. */
 	span.session-email {
 		text-transform: none;
 		letter-spacing: normal;
@@ -182,51 +170,39 @@
 		display: flex;
 		flex-direction: column;
 		align-items: flex-start;
-		padding-bottom: var(--space-48);
+		padding-bottom: var(--s-xl);
 	}
 
 	.hero {
-		margin: var(--space-8) 0 0;
-		font-family: var(--font-display);
-		font-size: 64px;
-		font-weight: 400;
-		line-height: 1.05;
-		letter-spacing: -0.5px;
-		color: var(--page-ink);
-		text-align: left;
+		margin: var(--s-xs) 0 0;
+		font-family: var(--f-display);
+		font-size: var(--t-display);
+		font-weight: var(--w-black);
+		line-height: var(--lh-display);
+		letter-spacing: var(--tr-display);
+		text-transform: uppercase;
+		color: var(--token-text);
 	}
 
-	/* The rule is measured from the PADDING box, not the baseline, so it lands
-	   ~15px under the glyphs. That is the signed-off C.1 appearance — the prompt's
-	   "8px below the baseline" is describing this padding value. Do not re-derive. */
 	.hero .ul {
-		position: relative;
 		display: inline-block;
-		padding-bottom: var(--space-8);
-	}
-
-	.hero .ul::after {
-		content: '';
-		position: absolute;
-		left: 0;
-		right: 0;
-		bottom: 0;
-		height: 2px;
-		background: var(--wired-black);
+		padding-bottom: var(--s-xs);
+		border-bottom: var(--stroke-hair) solid var(--token-border-interactive);
 	}
 
 	.deck {
-		margin: var(--space-16) 0 0;
-		max-width: 68ch;
-		font-family: var(--font-serif);
-		font-size: 19px;
-		font-style: italic;
-		line-height: 1.47;
-		letter-spacing: 0.108px;
-		color: var(--caption-gray);
+		margin: var(--s-md) 0 0;
+		max-width: var(--measure);
+		font-family: var(--f-body);
+		font-size: var(--t-base);
+		line-height: var(--lh-lede);
+		color: var(--token-text-secondary);
 	}
 
-	/* ---- Row list ---- */
+	/* ---- Rows, RESTYLE-SPEC.md § 2 ----
+	   Each row is one destination, so the whole row is its link. The grid places the
+	   cells by area; the DOM order (ordinal, kicker, name, description, counts) is
+	   untouched. .mid is display: contents so its three children are grid items. */
 
 	.rows {
 		list-style: none;
@@ -234,134 +210,95 @@
 		padding: 0;
 	}
 
-	/* EVERY row carries both borders from the start, including the first: giving
-	   the top border to `li + li` only means hovering row 01 adds a 1px border
-	   that nothing compensates for and nudges the whole list down. */
-	.rows li {
-		border-top: 1px solid transparent;
-		border-bottom: 1px solid var(--hairline-tint);
-	}
-
-	/* Collapse each row's transparent top border onto the previous row's bottom
-	   border so the pair reads as one hairline and the hover swap shifts nothing. */
 	.rows li + li {
-		margin-top: -1px;
-	}
-
-	/* The closing 2px bracket is the terminal rule, so the resting hairline is
-	   transparent rather than absent — `border-bottom: 0` has no width for the hover
-	   swap to paint, which left the last row bracketed on one edge only. */
-	.rows li:last-child {
-		border-bottom-color: transparent;
-	}
-
-	/* li:hover alone would cover the mouse; :has() is needed for the KEYBOARD arm,
-	   since focus lands on the <a> and there is no parent selector for it. */
-	.rows li:has(.row:hover),
-	.rows li:has(.row:focus-visible) {
-		position: relative;
-		z-index: 1;
-		border-top-color: var(--wired-black);
-		border-bottom-color: var(--wired-black);
-	}
-
-	.rows li:has(.row:hover) + li,
-	.rows li:has(.row:focus-visible) + li {
-		border-top-color: var(--wired-black);
-	}
-
-	/* Row 01's top edge is already the 2px opening bracket; painting the hover
-	   hairline there too stacks 1px under 2px and reads as a single 3px rule. */
-	.rows li:first-child:has(.row:hover),
-	.rows li:first-child:has(.row:focus-visible) {
-		border-top-color: transparent;
+		border-top: var(--stroke-hair) solid var(--token-border);
 	}
 
 	.row {
 		display: grid;
-		grid-template-columns: 96px 1fr 240px;
-		gap: var(--space-24);
+		gap: var(--s-2xs) var(--s-md);
+		padding-block: var(--s-md);
+		padding-inline: 0;
 		align-items: start;
-		padding: var(--space-32) 0;
+		grid-template-columns: 1fr auto;
+		grid-template-areas:
+			'name   num'
+			'desc   desc'
+			'kicker kicker'
+			'meta   meta';
 		color: inherit;
 		text-decoration: none;
 	}
 
-	.row:focus-visible {
-		outline: 2px solid var(--wired-black);
-		outline-offset: 2px;
+	.mid {
+		display: contents;
+	}
+
+	.mid > :global(.mono-kicker) {
+		grid-area: kicker;
 	}
 
 	.num {
-		font-family: var(--font-display);
-		font-size: 64px;
-		line-height: 1;
-		letter-spacing: -0.8px;
-		color: var(--page-ink);
+		grid-area: num;
+		align-self: start;
+		font-family: var(--f-mono);
+		font-size: var(--t-2xs);
+		line-height: var(--lh-label);
+		letter-spacing: var(--tr-meta);
+		font-variant-numeric: tabular-nums;
+		color: var(--token-text-secondary);
 	}
 
-	/* MonoKicker renders a bare inline <span> and takes no class, so both cells
-	   have to stack their own children — otherwise the metadata runs together on
-	   one line and every string is right while the layout is wrong. */
-	.mid {
-		display: flex;
-		flex-direction: column;
-		align-items: flex-start;
-		min-width: 0;
-	}
-
+	/* The row name is the primary Link's text: the emphasis underline in accent,
+	   recoloured on hover, and nothing else changes. */
 	.name {
-		position: relative;
-		display: inline-block;
-		margin-top: var(--space-4);
-		font-family: var(--font-display);
-		font-size: 48px;
-		line-height: 1.08;
-		letter-spacing: -0.28px;
-		color: var(--page-ink);
-		transition: color 150ms linear;
-		/* A 48px unbroken title (a slug, a long single word) has no break opportunity
-		   and would otherwise run straight through the 240px metadata cell. */
+		grid-area: name;
+		justify-self: start;
+		font-family: var(--f-display);
+		font-size: var(--t-base);
+		font-weight: var(--w-bold);
+		font-stretch: 85%;
+		line-height: var(--lh-heading);
+		letter-spacing: var(--tr-name);
+		text-transform: uppercase;
+		color: var(--token-text);
+		text-decoration: underline;
+		text-decoration-color: var(--token-accent);
+		text-decoration-thickness: var(--stroke-emphasis);
+		text-underline-offset: var(--s-2xs);
+		transition: text-decoration-color var(--dur-micro) var(--ease-toggle);
 		overflow-wrap: anywhere;
 	}
 
-	/* Only the name colour eases; the border swap is instant. Never `all`. */
-	.row:hover .name,
-	.row:focus-visible .name {
-		color: var(--link-blue);
-	}
-
-	.row:hover .name::after,
-	.row:focus-visible .name::after {
-		content: '';
-		position: absolute;
-		left: 0;
-		right: 0;
-		bottom: -2px;
-		height: 2px;
-		background: var(--link-blue);
+	.row:hover .name {
+		text-decoration-color: var(--token-accent-hover);
 	}
 
 	.desc {
-		margin-top: var(--space-8);
-		max-width: 60ch;
-		font-family: var(--font-serif);
-		font-size: 19px;
-		line-height: 1.47;
-		letter-spacing: 0.108px;
-		color: var(--caption-gray);
+		grid-area: desc;
+		max-width: var(--measure);
+		font-family: var(--f-body);
+		font-size: var(--t-sm);
+		line-height: var(--lh-body);
+		color: var(--token-text-secondary);
 	}
 
-	/* 6px is off the spacing ramp and --space-6 does not exist; a literal is the
-	   B.4-B.9 precedent for off-ramp values. Do not add a token for it. */
 	.meta {
+		grid-area: meta;
 		display: flex;
-		flex-direction: column;
-		align-items: flex-end;
-		gap: 6px;
-		padding-top: 6px;
-		line-height: 1.2;
-		text-align: right;
+		flex-wrap: wrap;
+		column-gap: var(--s-md);
+		row-gap: var(--s-2xs);
+	}
+
+	@media (min-width: 760px) {
+		.row {
+			grid-template-columns: minmax(12ch, 3fr) minmax(0, 5fr) auto;
+			grid-template-areas:
+				'name   desc num'
+				'kicker meta num';
+			column-gap: var(--s-lg);
+		}
 	}
 
 	/* ---- Empty state ---- */
@@ -369,104 +306,40 @@
 	.empty {
 		display: flex;
 		flex-direction: column;
-		align-items: center;
-		max-width: 520px;
-		margin: 0 auto;
-		padding: 96px 0;
-		text-align: center;
+		align-items: flex-start;
+		max-width: var(--measure);
+		padding: var(--s-xl) 0;
 	}
 
 	.empty-headline {
-		margin: var(--space-16) 0 0;
-		font-family: var(--font-display);
-		font-size: 26px;
-		font-weight: 400;
-		line-height: 1.18;
-		color: var(--page-ink);
+		margin: var(--s-sm) 0 0;
+		font-family: var(--f-display);
+		font-size: var(--t-md);
+		font-weight: var(--w-bold);
+		font-stretch: 85%;
+		line-height: var(--lh-heading);
+		letter-spacing: var(--tr-heading);
+		text-transform: uppercase;
+		color: var(--token-text);
 	}
 
 	.empty-body {
-		margin: var(--space-12) 0 0;
-		font-family: var(--font-serif);
-		font-size: 16px;
-		line-height: 1.5;
-		color: var(--page-ink);
+		margin: var(--s-sm) 0 0;
+		font-family: var(--f-body);
+		font-size: var(--t-sm);
+		line-height: var(--lh-body);
+		color: var(--token-text-secondary);
 	}
 
 	.empty-cta {
-		margin-top: var(--space-24);
+		margin-top: var(--s-lg);
 	}
 
-	/* ---- Responsive ramp ----
-	   These breakpoints and step-downs are the reference C.3-C.9 should copy, but
-	   nothing here is inherited: the block lives in this route's scoped <style>, so
-	   each screen re-declares it until the ramp is lifted into a shared stylesheet.
-	   Mono kickers are absent from every block on purpose: DESIGN.md §8 locks them
-	   at 13px and they never scale. */
-
-	@media (max-width: 1023px) {
-		.hero {
-			font-size: 48px;
-			line-height: 1.08;
-		}
-
-		.row {
-			grid-template-columns: 64px 1fr 200px;
-			padding: var(--space-24) 0;
-		}
-
-		.num {
-			font-size: 48px;
-		}
-
-		.name {
-			font-size: 36px;
-			line-height: 1.14;
-		}
-	}
-
-	@media (max-width: 767px) {
-		.column {
-			padding: var(--space-64) var(--space-16) var(--space-32);
-		}
-
-		/* The bar has no room for breadcrumb + address + two controls at 375px, and
-		   the address is the one item that is not a control. Dropping it keeps Admin
-		   and Sign out reachable instead of pushing them off-screen. */
+	@media (max-width: 759px) {
+		/* No room for breadcrumb, address and two controls at 360; the address is the
+		   one item that is not a control. */
 		span.session-email {
 			display: none;
-		}
-
-		.hero {
-			font-size: 40px;
-			line-height: 1.12;
-		}
-
-		/* Single column: the numeral moves inline above the kicker and the metadata
-		   flows below the deck. The hairlines and the hover/focus rule swap live on
-		   the <li> and survive the collapse untouched. */
-		.row {
-			grid-template-columns: 1fr;
-			gap: var(--space-8);
-		}
-
-		.num {
-			font-size: 32px;
-		}
-
-		.name {
-			font-size: 28px;
-			line-height: 1.18;
-		}
-
-		.deck,
-		.desc {
-			font-size: 16px;
-		}
-
-		.meta {
-			align-items: flex-start;
-			text-align: left;
 		}
 	}
 </style>

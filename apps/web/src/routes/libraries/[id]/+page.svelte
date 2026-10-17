@@ -395,8 +395,9 @@
 			</div>
 		{:else}
 			<div class="grid">
-				{#each data.books as book, i (book.id)}
+				{#each data.books as book (book.id)}
 					{@const year = publicationYear(book.published_at)}
+					{@const progress = progressLabel(book)}
 					<article class="tile">
 						<!-- tabindex/aria-hidden: the title link below is the real one. Two
 						     links to the same href would be two tab stops and two identical
@@ -404,23 +405,13 @@
 						<a class="cover-link" href={bookHref(book.id)} tabindex="-1" aria-hidden="true">
 							{#if book.coverUrl}
 								<div class="cover">
-									<img src={book.coverUrl} alt="" loading="lazy" />
+									<img src={book.coverUrl} alt="" loading="lazy" width="200" height="300" />
 								</div>
 							{:else}
-								<div class="cover fallback">
-									<!-- Numbered across the whole result set, not the page: a bare
-									     index restarts at 01 on page 2 while reading as a catalogue
-									     number that should be stable. -->
-									<MonoKicker size="sm" tone="paper"
-										>{formatLabel(book.format)} · N° {pad2(
-											(page - 1) * data.pageSize + i + 1
-										)}</MonoKicker
-									>
-									<span class="fallback-title">{book.title}</span>
-									{#if book.author}
-										<MonoKicker size="sm" tone="paper">{book.author}</MonoKicker>
-									{/if}
-								</div>
+								<!-- RESTYLE-SPEC.md § 10: a missing image is the bordered box, empty, at
+								     the cover's aspect ratio. No placeholder, icon or text; the name and
+								     the format render beneath it. -->
+								<div class="cover fallback"></div>
 							{/if}
 						</a>
 
@@ -436,8 +427,11 @@
 							<p class="author">by {book.author}</p>
 						{/if}
 
-						<p class="progress">
-							<MonoKicker size="md" tone="caption">{progressLabel(book)}</MonoKicker>
+						<!-- RESTYLE-SPEC.md § 5: the reading state is told by structure as well as by
+						     its word. Unread is a dashed border, Reading a solid one, Finished a solid
+						     one with the 4px square. -->
+						<p class="progress" class:unread={progress === 'Unread'} class:finished={progress === 'Finished'}>
+							<MonoKicker size="md" tone="ink">{progress}</MonoKicker>
 						</p>
 
 						{#if isAdmin}
@@ -480,14 +474,12 @@
 </div>
 
 <style>
-	/* 100vh first, then 100dvh: on mobile Safari/Chrome 100vh is the LARGE
-	   viewport, so with the URL bar on screen the footer starts below the fold. */
+	/* 100vh first, then 100dvh: on mobile 100vh is the large viewport. */
 	.grid-page {
 		display: flex;
 		flex-direction: column;
 		min-height: 100vh;
 		min-height: 100dvh;
-		background: var(--paper-white);
 	}
 
 	.column {
@@ -495,17 +487,12 @@
 		width: 100%;
 		max-width: 1280px;
 		margin: 0 auto;
-		/* Bottom padding is load-bearing, not symmetry: without it the pagination
-		   butts straight onto the dark footer. */
-		padding: var(--space-48) var(--space-24) var(--space-48);
+		padding: var(--s-xl) var(--s-lg);
 		box-sizing: border-box;
 	}
 
-	/* The bar uppercases everything it contains, which turns a signed-in address
-	   into a shouted one. Qualified with the element on purpose: UtilityBar styles
-	   this span through `.utility-right > :global(*)`, which ties on specificity,
-	   so a bare class would be decided by stylesheet order — and the mobile
-	   `display: none` below has to win outright. */
+	/* The bar uppercases everything; an address reads better as written. Qualified with
+	   the element so the mobile display: none below wins outright. */
 	span.session-email {
 		text-transform: none;
 		letter-spacing: normal;
@@ -517,79 +504,65 @@
 		display: flex;
 		flex-direction: column;
 		align-items: flex-start;
-		padding-bottom: var(--space-32);
+		padding-bottom: var(--s-lg);
 	}
 
-	/* No under-word rule here, unlike /login and /: that device singles out one word
-	   of a fixed hero phrase, and a variable-length library name has no such word. */
 	.hero {
-		margin: var(--space-4) 0 0;
-		font-family: var(--font-display);
-		font-size: 64px;
-		font-weight: 400;
-		line-height: 1.05;
-		letter-spacing: -0.5px;
-		color: var(--page-ink);
-		text-align: left;
-		/* A long unbroken name at 64px has no break opportunity and would otherwise
-		   run straight out of the column. */
+		margin: var(--s-2xs) 0 0;
+		font-family: var(--f-display);
+		font-size: var(--t-display);
+		font-weight: var(--w-black);
+		line-height: var(--lh-display);
+		letter-spacing: var(--tr-display);
+		text-transform: uppercase;
+		color: var(--token-text);
 		overflow-wrap: anywhere;
 	}
 
-	/* 16px non-italic, NOT the 19px italic deck the picker uses: 01-library-grid.md
-	   is explicit for this screen and the prompt wins over cross-screen habit. */
 	.deck {
-		margin: var(--space-8) 0 0;
-		max-width: 52ch;
-		font-family: var(--font-serif);
-		font-size: 16px;
-		line-height: 1.5;
-		letter-spacing: 0.09px;
-		color: var(--caption-gray);
+		margin: var(--s-xs) 0 0;
+		max-width: var(--measure);
+		font-family: var(--f-body);
+		font-size: var(--t-sm);
+		line-height: var(--lh-body);
+		color: var(--token-text-secondary);
 	}
 
 	/* ---- Filter strip ---- */
 
 	.strip-row {
-		padding: var(--space-24) 0;
+		padding: var(--s-lg) 0;
 	}
 
 	.search {
 		display: flex;
+		flex-wrap: wrap;
 		align-items: stretch;
-		min-width: 440px;
+		gap: var(--s-lg);
+		min-width: min(440px, 100%);
 	}
 
-	/* Hand-rolled rather than <Input>: B.7 requires a visible label stacked above a
-	   100%-wide field, which cannot sit inline beside the segments. Metrics match
-	   B.7 exactly except the height (44px, so the whole strip is one band). */
+	/* A § 9 Field. Its name is aria-label, as before: a visible label would be a field
+	   appearing (Story 8.1's DW-344 is the same finding there). */
 	.search input {
 		flex: 1;
-		height: 44px;
+		min-width: 0;
+		min-height: var(--tap);
 		box-sizing: border-box;
-		padding: 0 var(--space-12);
-		border: 2px solid var(--wired-black);
-		border-radius: 0;
-		background: var(--paper-white);
-		font-family: var(--font-sans);
-		font-size: 16px;
-		color: var(--page-ink);
+		padding: var(--s-xs) var(--s-sm);
+		border: var(--stroke-boundary) solid var(--token-border-interactive);
+		border-radius: var(--r-none);
+		background: var(--token-bg);
+		font-family: var(--f-body);
+		font-size: var(--t-sm);
+		color: var(--token-text);
 	}
 
 	.search input::placeholder {
-		color: var(--caption-gray);
+		color: var(--token-text-secondary);
 	}
 
-	.search input:focus-visible {
-		outline: 2px solid var(--wired-black);
-		outline-offset: 2px;
-	}
-
-	/* Mirrors FilterStrip's own `.seg-cell:not(:first-child)` collapse so the input
-	   and button fuse to one 2px seam. The wrapper span is the mechanism: a class on
-	   <Button> lands with BUTTON's scope hash and cannot be reached from here. */
 	.search-go {
-		margin-left: -2px;
 		display: inline-flex;
 	}
 
@@ -597,177 +570,118 @@
 
 	.resultbar {
 		display: flex;
-		align-items: baseline;
+		flex-wrap: wrap;
+		align-items: center;
 		justify-content: space-between;
-		gap: var(--space-24);
-		padding: var(--space-8) 0 var(--space-24);
+		gap: var(--s-sm) var(--s-lg);
+		padding: var(--s-xs) 0 var(--s-lg);
 	}
 
 	.resultbar-right {
 		display: flex;
+		flex-wrap: wrap;
 		align-items: center;
-		gap: var(--space-24);
+		gap: var(--s-lg);
 	}
 
 	.sort {
 		display: inline-flex;
 		align-items: center;
-		gap: var(--space-12);
+		gap: var(--s-sm);
 	}
 
+	/* A native <select> as a § 9 Field, the caret a text glyph inside the box. */
 	.sort-box {
 		position: relative;
 		display: inline-flex;
 		align-items: center;
-		height: 32px;
-		box-sizing: border-box;
-		padding: 0 28px 0 var(--space-12);
-		border: 2px solid var(--wired-black);
 	}
 
-	/* A native <select> on purpose: real keyboard support and a real mobile picker.
-	   Its popup is UA-rendered and cannot be brought fully onto the palette. */
 	.sort-box select {
 		appearance: none;
 		-webkit-appearance: none;
 		-moz-appearance: none;
-		min-width: 140px;
-		border: 0;
-		background: transparent;
-		font-family: var(--font-sans);
-		font-size: 14px;
-		font-weight: 700;
-		letter-spacing: 0.3px;
-		text-transform: uppercase;
-		color: var(--page-ink);
+		min-width: 160px;
+		min-height: var(--tap);
+		box-sizing: border-box;
+		padding: var(--s-xs) calc(var(--s-sm) * 2 + 1ch) var(--s-xs) var(--s-sm);
+		border: var(--stroke-boundary) solid var(--token-border-interactive);
+		border-radius: var(--r-none);
+		background: var(--token-bg);
+		font-family: var(--f-body);
+		font-size: var(--t-sm);
+		color: var(--token-text);
 		cursor: pointer;
 	}
 
-	/* Without this the popup inherits the hovered box's colors on Windows/Chromium
-	   and renders its own text invisibly. */
 	.sort-box select option {
-		color: var(--page-ink);
-		background: var(--paper-white);
+		color: var(--token-text);
+		background: var(--token-bg);
 	}
 
 	.sort-caret {
 		position: absolute;
-		right: var(--space-12);
-		color: var(--page-ink);
+		right: var(--s-sm);
+		color: var(--token-text-secondary);
 		pointer-events: none;
-	}
-
-	.sort-box:hover {
-		background: var(--wired-black);
-	}
-
-	.sort-box:hover select,
-	.sort-box:hover .sort-caret {
-		color: var(--paper-white);
-	}
-
-	.sort-box:focus-within {
-		outline: 2px solid var(--wired-black);
-		outline-offset: 2px;
 	}
 
 	/* ---- Upload (admin) ---- */
 
 	.upload-body {
-		padding: var(--space-24) 0;
+		padding: var(--s-lg) 0;
 	}
 
-	/* The C.1 treatment, identical for all three outcomes — only the kicker word
-	   differs. No success/warning/error color anywhere. */
 	.upload-result {
-		margin-bottom: var(--space-16);
-		padding: 14px var(--space-16);
-		border: 2px solid var(--wired-black);
-		background: var(--paper-white);
+		margin-bottom: var(--s-md);
+		padding: var(--s-sm) var(--s-md);
+		border: var(--stroke-boundary) solid var(--token-border-interactive);
 	}
 
 	.upload-message {
-		margin: var(--space-4) 0 0;
-		font-family: var(--font-serif);
-		font-size: 16px;
-		line-height: 1.5;
-		color: var(--page-ink);
+		margin: var(--s-2xs) 0 0;
+		font-family: var(--f-body);
+		font-size: var(--t-sm);
+		line-height: var(--lh-body);
+		color: var(--token-text);
 	}
 
 	.upload-form {
 		display: flex;
+		flex-wrap: wrap;
 		align-items: center;
-		gap: var(--space-16);
+		gap: var(--s-lg);
 	}
 
-	/* The native control keeps its UA appearance; building a drop zone is C.7. */
 	.upload-form input {
 		flex: 1;
-		font-family: var(--font-sans);
-		font-size: 14px;
-		color: var(--page-ink);
+		min-height: var(--tap);
+		font-family: var(--f-body);
+		font-size: var(--t-sm);
+		color: var(--token-text);
 	}
 
 	.upload-note {
-		margin: var(--space-12) 0 0;
+		margin: var(--s-sm) 0 0;
 	}
 
-	/* ---- Grid ---- */
+	/* ---- The cover grid, RESTYLE-SPEC.md § 10 Media ----
+	   The one place the row discipline gives way: the image is the content. The tile is
+	   not a card (no ground, no radius, no shadow, no box), separation is the gap, and
+	   the border sits on the image box, which reserves its 2:3 space before it loads. */
 
 	.grid {
 		display: grid;
-		grid-template-columns: repeat(4, 1fr);
-		padding-top: var(--space-48);
+		grid-template-columns: repeat(auto-fill, minmax(10rem, 1fr));
+		gap: var(--s-md);
+		padding-top: var(--s-lg);
 	}
 
-	/* 16 + 16 = the prompt's 32px horizontal gutter; padding-bottom is the 48px
-	   vertical gutter. Grid stretches every tile in a row to the row height, which
-	   is what lets the fold span the full row rather than one ragged tile. */
 	.tile {
-		position: relative;
 		display: flex;
 		flex-direction: column;
-		padding: 0 var(--space-16) var(--space-48);
+		min-width: 0;
 	}
-
-	/* The printerly column fold: a 1px rule on the LEFT edge of every tile except
-	   the first in its row, stopping short of the vertical gutter.
-
-	   Per TILE, not on the grid container: a container pseudo-element cannot know
-	   where a wrapped row starts or how tall it is. The epic's Debugging note says
-	   otherwise and is wrong. */
-	.tile::before {
-		content: '';
-		position: absolute;
-		left: 0;
-		top: 0;
-		bottom: var(--space-48);
-		width: 1px;
-		background: var(--wired-black);
-	}
-
-	/* Every column count's modulus rules live inside a BOUNDED @media block.
-	   A media query adds no specificity, so an unbounded `.tile:nth-child(4n + 1)`
-	   (0,2,0) outranks any `.tile` reset (0,1,0) a narrower block can write — and
-	   `4n + 1` still matches at three columns. Left unbounded, tiles 5, 9, 17 keep
-	   the 4-column `display: none` and lose their fold mid-row, and tiles 4, 8, 16
-	   keep `padding-right: 0` and lose a gutter. Bounding each modulus is the only
-	   form that holds; a reset inside the narrower block cannot win the cascade. */
-	@media (min-width: 1280px) {
-		.tile:nth-child(4n + 1) {
-			padding-left: 0;
-		}
-
-		.tile:nth-child(4n) {
-			padding-right: 0;
-		}
-
-		.tile:nth-child(4n + 1)::before {
-			display: none;
-		}
-	}
-
-	/* ---- Tile content ---- */
 
 	.cover-link {
 		display: block;
@@ -775,239 +689,147 @@
 	}
 
 	.cover {
+		display: block;
+		box-sizing: border-box;
 		width: 100%;
 		aspect-ratio: 2 / 3;
-		display: block;
-		border-radius: 0;
+		border: var(--stroke-hair) solid var(--token-border);
+		border-radius: var(--r-none);
 	}
 
 	.cover img {
+		display: block;
 		width: 100%;
 		height: 100%;
+		max-width: 100%;
 		object-fit: cover;
-		display: block;
-	}
-
-	/* The prototype's `ink` palette — the only one of its five that is on-system.
-	   The other four carry off-palette fills or decorative geometry. */
-	.fallback {
-		display: flex;
-		flex-direction: column;
-		justify-content: space-between;
-		box-sizing: border-box;
-		padding: 18px var(--space-16);
-		background: var(--page-ink);
-		color: var(--paper-white);
-	}
-
-	.fallback-title {
-		font-family: var(--font-display);
-		font-size: 26px;
-		line-height: 1;
-		letter-spacing: -0.3px;
-		color: var(--paper-white);
-		overflow-wrap: anywhere;
 	}
 
 	.kicker {
-		margin-top: var(--space-12);
+		margin-top: var(--s-xs);
 	}
 
+	/* The name, at --t-sm in --token-text, is the tile's primary Link: the emphasis
+	   underline on its text, recoloured on hover, the --tap height on the anchor. */
 	.title {
-		margin-top: var(--space-4);
-		font-family: var(--font-display);
-		font-size: 26px;
-		line-height: 1.18;
-		letter-spacing: -0.2px;
-		color: var(--page-ink);
-		text-decoration: none;
-		overflow-wrap: anywhere;
-		transition: color 150ms linear;
-	}
-
-	/* .tile:hover, not .title:hover — hovering the COVER must colour the title too.
-	   Only colour transitions; the underline and everything else is instant. */
-	.tile:hover .title,
-	.tile:focus-within .title {
-		color: var(--link-blue);
+		display: inline-flex;
+		align-items: center;
+		align-self: flex-start;
+		min-height: var(--tap);
+		font-family: var(--f-body);
+		font-size: var(--t-sm);
+		line-height: var(--lh-label);
+		color: var(--token-text);
 		text-decoration: underline;
-		text-decoration-thickness: 1px;
-		text-underline-offset: 4px;
+		text-decoration-color: var(--token-accent);
+		text-decoration-thickness: var(--stroke-emphasis);
+		text-underline-offset: var(--s-2xs);
+		transition: text-decoration-color var(--dur-micro) var(--ease-toggle);
+		overflow-wrap: anywhere;
 	}
 
-	.title:focus-visible {
-		outline: 2px solid var(--wired-black);
-		outline-offset: 2px;
+	.title:hover {
+		text-decoration-color: var(--token-accent-hover);
 	}
 
 	.author {
-		margin: 6px 0 0;
-		font-family: var(--font-serif);
-		font-size: 16px;
-		line-height: 1.4;
-		color: var(--page-ink);
+		margin: 0;
+		font-family: var(--f-body);
+		font-size: var(--t-xs);
+		line-height: var(--lh-label);
+		color: var(--token-text-secondary);
 	}
 
 	.progress {
-		margin: var(--space-8) 0 0;
+		display: inline-flex;
+		align-items: center;
+		align-self: flex-start;
+		gap: var(--s-2xs);
+		margin: var(--s-2xs) 0 0;
+		padding: var(--s-2xs) var(--s-xs);
+		border: var(--stroke-boundary) solid var(--token-border-interactive);
+		border-radius: var(--r-none);
 	}
 
-	/* Pins to the bottom of a stretched tile so the control sits on one line across
-	   a row of ragged-height tiles. */
+	.progress.unread {
+		border-style: dashed;
+	}
+
+	/* The 4px square at --r-none, in the text's colour: the one ground in the system
+	   that is a mark rather than a surface (Story 8.1's .ct-dot). */
+	.progress.finished::before {
+		content: '';
+		flex: none;
+		width: var(--s-2xs);
+		height: var(--s-2xs);
+		background-color: var(--token-text);
+	}
+
 	.tile-remove {
 		margin-top: auto;
-		padding-top: var(--space-12);
+		padding-top: var(--s-xs);
 	}
 
-	/* ---- Empty states ---- */
+	/* ---- Empty states, § 8: one line in the list's place; no illustration ---- */
 
-	/* 96px has no token; a literal is the B.4-B.9 precedent for off-ramp values. */
 	.empty {
 		display: flex;
 		flex-direction: column;
-		align-items: center;
-		max-width: 520px;
-		margin: 0 auto;
-		padding: 96px 0;
-		text-align: center;
+		align-items: flex-start;
+		max-width: var(--measure);
+		padding: var(--s-xl) 0;
 	}
 
-	/* 26px, not the prototype's 40px: DESIGN.md §3's display ramp has 64 and 26 and
-	   no step between them. */
 	.empty-headline {
-		margin: var(--space-8) 0 0;
-		font-family: var(--font-display);
-		font-size: 26px;
-		font-weight: 400;
-		line-height: 1.18;
-		color: var(--page-ink);
+		margin: var(--s-xs) 0 0;
+		font-family: var(--f-display);
+		font-size: var(--t-md);
+		font-weight: var(--w-bold);
+		font-stretch: 85%;
+		line-height: var(--lh-heading);
+		letter-spacing: var(--tr-heading);
+		text-transform: uppercase;
+		color: var(--token-text);
 	}
 
 	.empty-body {
-		margin: var(--space-12) 0 0;
-		font-family: var(--font-serif);
-		font-size: 16px;
-		line-height: 1.5;
-		color: var(--caption-gray);
+		margin: var(--s-sm) 0 0;
+		font-family: var(--f-body);
+		font-size: var(--t-sm);
+		line-height: var(--lh-body);
+		color: var(--token-text-secondary);
 	}
 
 	.empty-cta {
-		margin-top: var(--space-24);
+		margin-top: var(--s-lg);
 	}
 
-	/* ---- Pagination ---- */
+	/* ---- Pagination: Controls and a Label ---- */
 
 	.pagination {
 		display: flex;
+		flex-wrap: wrap;
 		align-items: center;
 		justify-content: center;
-		gap: var(--space-24);
-		padding: var(--space-48) 0 var(--space-64);
+		gap: var(--s-lg);
+		padding: var(--s-xl) 0;
 	}
 
 	.page-indicator {
-		min-width: 160px;
 		text-align: center;
 	}
 
-	/* ---- Responsive ramp ----
-	   Mono kickers are absent from every block on purpose: DESIGN.md §8 locks them
-	   at 13px and they never scale.
-
-	   Each block RE-DECLARES the tile padding and the fold's display before applying
-	   its own modulus. `4n + 1` still matches at three columns, so without the reset
-	   the folds land in the middle of a row — and no test can see it. */
-
-	@media (min-width: 1024px) and (max-width: 1279px) {
-		.grid {
-			grid-template-columns: repeat(3, 1fr);
-		}
-
-		.tile:nth-child(3n + 1) {
-			padding-left: 0;
-		}
-
-		.tile:nth-child(3n) {
-			padding-right: 0;
-		}
-
-		.tile:nth-child(3n + 1)::before {
-			display: none;
-		}
-	}
-
-	/* Two columns and below drop the folds entirely — the epic's verify step 6 is
-	   explicit that they appear at >=1024px only, which overrides DESIGN.md §8's
-	   "hairlines persist between every column count" for this screen. */
-	@media (max-width: 1023px) {
-		.hero {
-			font-size: 48px;
-			line-height: 1.08;
-		}
-
-		.grid {
-			grid-template-columns: repeat(2, 1fr);
-		}
-
-		.tile::before {
-			display: none;
-		}
-
-		.tile:nth-child(2n + 1) {
-			padding-left: 0;
-		}
-
-		.tile:nth-child(2n) {
-			padding-right: 0;
-		}
-	}
-
-	@media (max-width: 767px) {
-		/* AC16 narrows the horizontal padding only. The bottom 48px is load-bearing
-		   at every width: without it the pagination butts onto the dark footer. */
-		.column {
-			padding: var(--space-48) var(--space-16);
-		}
-
-		/* The bar has no room for breadcrumb + address + two controls at 375px, and
-		   the address is the one item that is not a control. */
+	@media (max-width: 759px) {
 		span.session-email {
 			display: none;
 		}
 
-		.hero {
-			font-size: 40px;
-			line-height: 1.12;
-		}
-
-		/* :global() is mandatory — a class passed as a prop is rendered inside
-		   FilterStrip's template and never receives this route's scoping hash. */
 		.column :global(.strip) {
 			flex-wrap: wrap;
 		}
 
 		.search {
 			min-width: 100%;
-		}
-
-		.resultbar {
-			flex-direction: column;
-			align-items: flex-start;
-			gap: var(--space-12);
-		}
-
-		.grid {
-			grid-template-columns: 1fr;
-		}
-
-		.tile {
-			padding-left: 0;
-			padding-right: 0;
-		}
-
-		.title {
-			font-size: 22px;
-			line-height: 1.2;
 		}
 	}
 </style>

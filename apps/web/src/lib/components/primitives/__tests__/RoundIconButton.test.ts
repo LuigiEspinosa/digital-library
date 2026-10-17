@@ -162,7 +162,13 @@ describe('RoundIconButton', () => {
 		// B.10 one). Tightest allowlist in the set — four colors, no --font-mono (no text).
 		const tokens = [...src.matchAll(/var\(\s*(--[a-z0-9-]+)/g)].map((m) => m[1]);
 		expect(tokens.length).toBeGreaterThan(0);
-		const allowed = ['--caption-gray', '--page-ink', '--link-blue', '--wired-black'];
-		for (const t of tokens) expect(allowed).toContain(t);
+		// Story 8.2: every custom property is one the vendored contract defines, and a
+		// colour is a role, never the raw --c-* palette.
+		const contract = [...readFileSync(join(dirname(componentSource), '../../cuatro-contracts/tokens.css'), 'utf8')
+			.matchAll(/^\s*(--[\w-]+)\s*:/gm)].map((m) => m[1]);
+		for (const t of tokens) {
+			expect(contract, `not a contract token: ${t}`).toContain(t);
+			expect(t.startsWith('--c-')).toBe(false);
+		}
 	});
 });

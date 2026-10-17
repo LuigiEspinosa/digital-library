@@ -60,7 +60,7 @@
 		/* Uppercase is CSS-only — the DOM keeps the author's case so a screen reader
 		   announces "Libraries", not the shouted caps (the MonoKicker rule). Weight
 		   400 matches the two mono references + MonoKicker md (scoped decision). */
-		font-family: var(--font-mono);
+		font-family: var(--f-mono);
 		font-size: 13px;
 		font-weight: 400;
 		letter-spacing: 0.92px;
@@ -76,17 +76,17 @@
 	/* Both the <a> and the hrefless <span> ancestor label are Caption Gray; only the
 	   <a> recolors on hover. */
 	.crumb {
-		color: var(--caption-gray);
+		color: var(--token-text-secondary);
 		text-decoration: none;
 	}
 
 	.sep {
-		color: var(--caption-gray);
+		color: var(--token-text-secondary);
 		user-select: none;
 	}
 
 	.current {
-		color: var(--page-ink);
+		color: var(--token-text);
 	}
 
 	a.crumb {
@@ -94,13 +94,13 @@
 	}
 
 	a.crumb:hover {
-		color: var(--link-blue);
+		color: var(--token-accent);
 	}
 
 	/* The editorial double-rule focus shared by Button/Input/AppNav (DESIGN.md §4):
 	   a 2px outset, no glow. Keyboard users must see focus on the crumb links. */
 	a.crumb:focus-visible {
-		outline: 2px solid var(--wired-black);
+		outline: 2px solid var(--token-text);
 		outline-offset: 2px;
 	}
 </style>

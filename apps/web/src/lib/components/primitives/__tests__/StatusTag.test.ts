@@ -191,7 +191,13 @@ describe('StatusTag', () => {
 		// Guard the guard: if the token scan matches nothing the for-loop is vacuous
 		// and this test passes green over an all-off-palette rewrite.
 		expect(tokens.length).toBeGreaterThan(0);
-		const allowed = ['--page-ink', '--paper-white', '--caption-gray', '--hairline-tint', '--font-mono'];
-		for (const t of tokens) expect(allowed).toContain(t);
+		// Story 8.2: every custom property is one the vendored contract defines, and a
+		// colour is a role, never the raw --c-* palette.
+		const contract = [...readFileSync(join(dirname(componentSource), '../../cuatro-contracts/tokens.css'), 'utf8')
+			.matchAll(/^\s*(--[\w-]+)\s*:/gm)].map((m) => m[1]);
+		for (const t of tokens) {
+			expect(contract, `not a contract token: ${t}`).toContain(t);
+			expect(t.startsWith('--c-')).toBe(false);
+		}
 	});
 });

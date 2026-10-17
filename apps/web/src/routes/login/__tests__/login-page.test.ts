@@ -163,13 +163,12 @@ describe('/login source guard', () => {
 		).toBeNull();
 	});
 
-	// Derived from tokens.css rather than hand-copied: a hardcoded subset false-reds
-	// the legitimate --space-1/4/12/40/48 the design system already defines, and a
-	// false red is what gets a guard deleted rather than fixed. "In-system" is
-	// exactly "defined in tokens.css", so that file is the right source of truth.
-	test('every var(--…) names a token defined in tokens.css', () => {
+	// Derived from the vendored contract rather than hand-copied (Story 8.2): every
+	// custom property this route reads is a contract role or scale, never the raw
+	// --c-* palette and never a name of its own.
+	test('every var(--…) names a token the vendored contract defines', () => {
 		const tokensCss = readFileSync(
-			join(dirname(fileURLToPath(import.meta.url)), '../../../lib/tokens.css'),
+			join(dirname(fileURLToPath(import.meta.url)), '../../../lib/cuatro-contracts/tokens.css'),
 			'utf8'
 		);
 		const defined = [...tokensCss.matchAll(/^\s*(--[\w-]+)\s*:/gm)].map((m) => m[1]);
@@ -179,7 +178,10 @@ describe('/login source guard', () => {
 		// Guard the guard: an off-palette rewrite that empties the scan must fail,
 		// not pass vacuously.
 		expect(used.length).toBeGreaterThan(0);
-		for (const t of used) expect(defined).toContain(t);
+		for (const t of used) {
+			expect(defined).toContain(t);
+			expect(t.startsWith('--c-')).toBe(false);
+		}
 	});
 
 	// text-shadow / drop-shadow() / transition-property are the synonyms the original
@@ -189,7 +191,7 @@ describe('/login source guard', () => {
 	test('flat by religion: no shadow, no radius other than 0, no transition: all', () => {
 		expect(src.match(/box-shadow|text-shadow|drop-shadow\s*\(/gi)).toBeNull();
 		const radii = [...src.matchAll(/border-radius\s*:\s*([^;}]+)/gi)].map((m) => m[1].trim());
-		for (const r of radii) expect(r).toBe('0');
+		for (const r of radii) expect(['0', 'var(--r-none)']).toContain(r);
 		expect(src.match(/transition(-property)?\s*:\s*all/gi)).toBeNull();
 	});
 

@@ -85,9 +85,13 @@ describe('UtilityBar divider source guard', () => {
 		.replace(/<!--[\s\S]*?-->/g, ' ')
 		.replace(/^\s*\/\/[^\n]*/gm, ' ');
 
-	test('the divider targets adjacent siblings of any type, not anchors only', () => {
-		expect(src).toMatch(/\.utility-right\s*>\s*:global\(\s*\*\s*\+\s*\*\s*\)::before/);
-		expect(src.match(/:global\(\s*a\s*\+\s*a\s*\)/)).toBeNull();
+	// Story 8.2: the bar is the page ground on a hairline; items are set apart by the
+	// sibling gap, so no divider pseudo-element (and no alpha rule) remains.
+	test('items are separated by the sibling gap, not a divider', () => {
+		expect(src).toMatch(/\.utility-right\s*\{[^}]*gap:\s*var\(--s-lg\)/);
+		expect(src.match(/::before|rgba\(/g)).toBeNull();
+		expect(src).toMatch(/\.utility-bar\s*\{[^}]*border-bottom:\s*var\(--stroke-hair\) solid var\(--token-border\)/);
+		expect(src.match(/\.utility-bar\s*\{[^}]*background/)).toBeNull();
 	});
 
 	test('the item layout rule targets every direct child of the right region', () => {
@@ -114,22 +118,13 @@ describe('UtilityBar divider source guard', () => {
 		expect(buttonRule).toMatch(/align-items\s*:\s*center/);
 	});
 
-	// The <form> is the flex item, so item padding on the form is dead space around
-	// the button: the sign-out target ends up ~32px narrower than the Admin link
-	// beside it. The padding has to sit on the control itself.
-	test('the item padding moves to the button when a form wraps it', () => {
-		expect(src).toMatch(/\.utility-right\s*>\s*:global\(\s*form\s*\)\s*\{[^}]*padding:\s*0/);
-		expect(src).toMatch(
-			/\.utility-right\s*:global\(\s*form\s*>\s*button\s*\)\s*\{[^}]*padding:\s*0\s+var\(--space-16\)/
-		);
-		// The reset rule must not re-zero it.
-		const buttonRule = src.match(/\.utility-right\s*:global\(\s*button\s*\)\s*\{([^}]*)\}/)?.[1];
-		expect(buttonRule).not.toMatch(/padding\s*:\s*0/);
-	});
-
-	test('the edge rules reach the button one level down', () => {
-		expect(src).toMatch(/:global\(\s*form:first-child\s*>\s*button\s*\)\s*\{[^}]*padding-left:\s*0/);
-		expect(src).toMatch(/:global\(\s*form:last-child\s*>\s*button\s*\)\s*\{[^}]*padding-right:\s*0/);
+	// The --tap box sits on the control itself, so the sign-out button inside its <form>
+	// is as large a target as the Admin link beside it.
+	test('every slotted control carries the --tap box on both axes', () => {
+		const rule = src.match(/\.utility-right\s*:global\(\s*a\s*\),\s*\.utility-right\s*:global\(\s*button\s*\)\s*\{([^}]*)\}/)?.[1];
+		expect(rule).toBeTruthy();
+		expect(rule).toMatch(/min-height:\s*var\(--tap\)/);
+		expect(rule).toMatch(/min-width:\s*var\(--tap\)/);
 	});
 
 	// C.3 puts the first USER-SUPPLIED segment in the breadcrumb (a library name).
